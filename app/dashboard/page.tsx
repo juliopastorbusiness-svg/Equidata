@@ -1,72 +1,212 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
 
-type UserRole = "rider" | "centerOwner" | "pro";
+type Role = "rider" | "centerOwner" | "pro";
 
-export default function DashboardRouter() {
+export default function RegisterPage() {
   const router = useRouter();
-  const [message, setMessage] = useState("Comprobando sesión...");
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      // 1) Si NO hay usuario, volvemos al login
-      if (!user) {
-        router.push("/login");
-        return;
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<Role>("rider");
+
+  // solo para propietario de centro
+  const [newCenterName, setNewCenterName] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      // Validación específica de propietario de centro
+      if (role === "centerOwner" && !newCenterName.trim()) {
+        throw new Error("Debes indicar el nombre de tu centro hípico.");
       }
 
-      try {
-        // 2) Leemos su documento en Firestore
-        const snap = await getDoc(doc(db, "users", user.uid));
+      // 1) Crear usuario en Authentication
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      const user = cred.user;
 
-        if (!snap.exists()) {
-          setMessage(
-            "No se encontró tu cuenta en la base de datos. Vuelve a registrarte o contacta con soporte."
-          );
-          return;
-        }
+      let centerId: string | null = null;
 
-        const data = snap.data() as { role?: UserRole };
-
-        // 3) Si no hay rol, mostramos mensaje claro
-        if (!data.role) {
-          setMessage(
-            "No se encontró tu tipo de cuenta. Vuelve a registrarte o contacta con soporte."
-          );
-          return;
-        }
-
-        // 4) Redirigimos según rol
-        if (data.role === "rider") {
-          router.push("/dashboard/rider");
-        } else if (data.role === "centerOwner") {
-          router.push("/dashboard/center");
-        } else if (data.role === "pro") {
-          router.push("/dashboard/pro");
-        } else {
-          setMessage(
-            "Tu tipo de cuenta no es válido. Contacta con soporte."
-          );
-        }
-      } catch (err) {
-        console.error(err);
-        setMessage(
-          "Error al comprobar tu cuenta. Inténtalo de nuevo más tarde."
-        );
+      // 2) Si es propietario de centro, crear el centro en la colección "centers"
+      if (role === "centerOwner") {
+        const centerRef = await addDoc(collection(db, "centers"), {
+          name: newCenterName.trim(),
+          ownerId: user.uid,
+          createdAt: serverTimestamp(),
+        });
+        centerId = centerRef.id;
       }
-    });
 
-    return () => unsub();
-  }, [router]);
+      // 3) Guardar el documento de usuario en "users"
+      await setDoc(doc(db, "users", user.uid), {
+        name,
+        email,
+        role,
+        centerId, // null para jinetes y profesionales, id del centro para propietarios
+        createdAt: serverTimestamp(),
+      });
+
+      // 4) Enviar al login tras registrarse
+      router.push("/login");
+    } catch (err: any) {
+      console.error(err);
+      if (err?.code === "auth/email-already-in-use") {
+        setError("Este correo ya está registrado.");
+      } else if (err?.message) {
+        setError(err.message);
+      } else {
+        setError("Ha ocurrido un error al crear la cuenta.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <main className="min-h-screen flex items-center justify-center">
-      <p>{message}</p>
+    <main className="min-h-screen flex items-center justify-center bg-black text-white">
+      <div className="w-full max-w-md border border-zinc-700 rounded-2xl p-6 bg-zinc-950/80">
+        <h1 className="text-2xl font-bold mb-4 text-center">
+          Crear cuenta EquiData
+        </h1>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Nombre */}
+          <div>
+            <label className="block text-sm mb-1">Nombre</label>
+            <input
+              type="text"
+              className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm mb-1">Email</label>
+            <input
+              type="email"
+              className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Password */}
+          <div>
+            <label className="block text-sm mb-1">Contraseña</label>
+            <input
+              type="password"
+              className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+            />
+          </div>
+
+          {/* Tipo de cuenta */}
+          <div>
+            <span className="block text-sm mb-1">Tipo de cuenta</span>
+            <div className="space-y-1 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="role"
+                  value="rider"
+                  checked={role === "rider"}
+                  onChange={() => setRole("rider")}
+                />
+                Jinete
+              </label>
+
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="role"
+                  value="centerOwner"
+                  checked={role === "centerOwner"}
+                  onChange={() => setRole("centerOwner")}
+                />
+                Propietario de centro hípico
+              </label>
+
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="role"
+                  value="pro"
+                  checked={role === "pro"}
+                  onChange={() => setRole("pro")}
+                />
+                Profesional (veterinario, herrador…)
+              </label>
+            </div>
+          </div>
+
+          {/* Nombre del centro solo para propietario */}
+          {role === "centerOwner" && (
+            <div>
+              <label className="block text-sm mb-1">
+                Nombre de tu centro hípico
+              </label>
+              <input
+                type="text"
+                className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+                value={newCenterName}
+                onChange={(e) => setNewCenterName(e.target.value)}
+                placeholder="Ej: Centro Hípico Sevilla"
+                required
+              />
+            </div>
+          )}
+
+          {error && (
+            <p className="text-sm text-red-400 bg-red-950/40 border border-red-900 rounded p-2">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded bg-blue-600 py-2 text-sm font-semibold disabled:opacity-60"
+          >
+            {loading ? "Creando cuenta..." : "Registrarse"}
+          </button>
+        </form>
+
+        <p className="mt-4 text-center text-xs text-zinc-400">
+          ¿Ya tienes cuenta?{" "}
+          <button
+            type="button"
+            onClick={() => router.push("/login")}
+            className="text-blue-400 hover:underline"
+          >
+            Inicia sesión
+          </button>
+        </p>
+      </div>
     </main>
   );
 }

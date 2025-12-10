@@ -1,25 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  FormEvent,
+} from "react";
 import { useRouter } from "next/navigation";
-import { auth, db } from "@/lib/firebase";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth, db, storage } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   collection,
-  doc,
-  getDoc,
+  addDoc,
   onSnapshot,
   query,
   where,
+  Timestamp,
+  doc,
+  getDoc,
+  getDocs,
 } from "firebase/firestore";
-import Link from "next/link";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 type Horse = {
   id: string;
   name: string;
   age: number;
-  breed?: string;
+  breed: string;
+  ownerId: string;
+  centerId: string;
   photoUrl?: string;
+  createdAt?: Timestamp;
 };
 
 type Center = {
@@ -27,237 +38,386 @@ type Center = {
   name: string;
 };
 
-export default function RiderDashboardPage() {
+type UserInfo = {
+  name?: string;
+  email?: string;
+  role?: string;
+};
+
+const RiderDashboardPage: React.FC = () => {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [center, setCenter] = useState<Center | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+
+  // Centros
+  const [centers, setCenters] = useState<Center[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeCenterId, setActiveCenterId] = useState<string | null>(null);
+
+  // Caballos
   const [horses, setHorses] = useState<Horse[]>([]);
+  const [name, setName] = useState("");
+  const [age, setAge] = useState<string>("");
+  const [breed, setBreed] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+
+  // Estado general
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [loadingHorse, setLoadingHorse] = useState(false);
   const [error, setError] = useState("");
 
+  // 1️⃣ Autenticación + datos del usuario + centros
   useEffect(() => {
-    // Escuchamos la sesión de Firebase Auth
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.push("/login");
         return;
       }
 
+      setUserId(user.uid);
+
       try {
-        // 1. Cargamos el documento del usuario en Firestore
+        // Cargar info del usuario
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const data = userSnap.data() as UserInfo;
+          setUserInfo(data);
 
-        if (!userSnap.exists()) {
-          setError("No se han encontrado tus datos de usuario.");
-          setLoading(false);
-          return;
-        }
-
-        const userData = userSnap.data() as any;
-
-        // Comprobamos el rol
-        if (userData.role !== "rider") {
-          // Si no es jinete, lo mandamos al /dashboard genérico
-          router.push("/dashboard");
-          return;
-        }
-
-        setUserName(userData.displayName || null);
-        setUserEmail(userData.email || user.email);
-
-        // 2. Si tiene centerId, cargamos el centro
-        if (userData.centerId) {
-          const centerRef = doc(db, "centers", userData.centerId);
-          const centerSnap = await getDoc(centerRef);
-          if (centerSnap.exists()) {
-            setCenter({
-              id: centerSnap.id,
-              name: (centerSnap.data() as any).name,
-            });
+          // Si NO es jinete, lo sacamos a su dashboard correspondiente
+          if (data.role && data.role !== "rider") {
+            if (data.role === "centerOwner") {
+              router.push("/dashboard/center");
+            } else if (data.role === "pro") {
+              router.push("/dashboard/pro");
+            }
+            return;
           }
         }
 
-        // 3. Escuchamos los caballos del jinete en la colección "horses"
-        const q = query(
-          collection(db, "horses"),
-          where("ownerId", "==", user.uid)
-        );
-
-        const unsubHorses = onSnapshot(q, (snap) => {
-          const list: Horse[] = snap.docs.map((d) => {
-            const data = d.data() as any;
-            return {
-              id: d.id,
-              name: data.name,
-              age: data.age,
-              breed: data.breed,
-              photoUrl: data.photoUrl,
-            };
-          });
-          setHorses(list);
-        });
-
-        setLoading(false);
-
-        // Limpieza
-        return () => {
-          unsubHorses();
-        };
+        // Cargar todos los centros
+        const centersSnap = await getDocs(collection(db, "centers"));
+        const centersData: Center[] = centersSnap.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as { name: string }),
+        }));
+        setCenters(centersData);
       } catch (err) {
-        console.error(err);
-        setError("Error cargando el dashboard. Inténtalo de nuevo.");
-        setLoading(false);
+        console.error("Error cargando usuario/centros:", err);
+        setError("No se pudieron cargar tus datos.");
+      } finally {
+        setLoadingInitial(false);
       }
     });
 
     return () => unsub();
   }, [router]);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.push("/login");
+  // 2️⃣ Suscripción a TODOS los caballos de este jinete
+  useEffect(() => {
+    if (!userId) return;
+
+    const q = query(collection(db, "horses"), where("ownerId", "==", userId));
+
+    const unsub = onSnapshot(q, (snapshot) => {
+      const data: Horse[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Horse, "id">),
+      }));
+      setHorses(data);
+    });
+
+    return () => unsub();
+  }, [userId]);
+
+  // 3️⃣ Mapas derivados
+  const centersById = useMemo(() => {
+    const map: Record<string, Center> = {};
+    centers.forEach((c) => {
+      map[c.id] = c;
+    });
+    return map;
+  }, [centers]);
+
+  // Centros donde este jinete YA tiene caballos
+  const riderCenters: Center[] = useMemo(() => {
+    const ids = new Set<string>();
+    horses.forEach((h) => {
+      if (h.centerId) ids.add(h.centerId);
+    });
+    return Array.from(ids)
+      .map((id) => centersById[id])
+      .filter(Boolean) as Center[];
+  }, [horses, centersById]);
+
+  // Resultados de búsqueda (solo por nombre, en memoria)
+  const filteredCenters: Center[] = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return centers;
+    return centers.filter((c) =>
+      c.name.toLowerCase().includes(term)
+    );
+  }, [centers, searchTerm]);
+
+  // Caballos del centro actualmente seleccionado
+  const horsesInActiveCenter: Horse[] = useMemo(() => {
+    if (!activeCenterId) return [];
+    return horses.filter((h) => h.centerId === activeCenterId);
+  }, [horses, activeCenterId]);
+
+  // 4️⃣ Subir foto a Storage
+  const uploadHorsePhoto = async (file: File, userId: string) => {
+    const filePath = `horses/${userId}/${Date.now()}-${file.name}`;
+    const storageRef = ref(storage, filePath);
+    const snapshot = await uploadBytes(storageRef, file);
+    const url = await getDownloadURL(snapshot.ref);
+    return url;
   };
 
-  if (loading) {
+  // 5️⃣ Guardar caballo nuevo en el centro activo
+  const handleSubmitHorse = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!userId) return;
+    if (!activeCenterId) {
+      setError("Primero selecciona un centro hípico.");
+      return;
+    }
+
+    setError("");
+    setLoadingHorse(true);
+
+    try {
+      let photoUrl: string | null = null;
+      if (photoFile) {
+        photoUrl = await uploadHorsePhoto(photoFile, userId);
+      }
+
+      await addDoc(collection(db, "horses"), {
+        name,
+        age: Number(age),
+        breed,
+        ownerId: userId,
+        centerId: activeCenterId,
+        photoUrl,
+        createdAt: Timestamp.now(),
+      });
+
+      // Limpiar formulario
+      setName("");
+      setAge("");
+      setBreed("");
+      setPhotoFile(null);
+      const input = document.getElementById(
+        "horse-photo"
+      ) as HTMLInputElement | null;
+      if (input) input.value = "";
+    } catch (err) {
+      console.error("Error guardando caballo:", err);
+      setError("No se pudo guardar el caballo.");
+    } finally {
+      setLoadingHorse(false);
+    }
+  };
+
+  // 6️⃣ Render
+  if (loadingInitial) {
     return (
-      <main className="min-h-screen bg-black text-white flex items-center justify-center">
-        <p className="text-gray-300">Cargando tu panel de jinete...</p>
+      <main className="min-h-screen flex items-center justify-center bg-black text-white">
+        <p>Comprobando sesión...</p>
       </main>
     );
   }
 
-  if (error) {
+  if (!userId) {
     return (
-      <main className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="space-y-4 text-center">
-          <p className="text-red-400">{error}</p>
-          <button
-            onClick={() => router.push("/login")}
-            className="bg-blue-600 px-4 py-2 rounded"
-          >
-            Volver a iniciar sesión
-          </button>
-        </div>
+      <main className="min-h-screen flex items-center justify-center bg-black text-white">
+        <p>No hay sesión activa.</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-6 space-y-6">
-      {/* Cabecera */}
-      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard de jinete</h1>
-          <p className="text-gray-300 text-sm mt-1">
-            Has iniciado sesión como{" "}
-            <span className="font-semibold">
-              {userName || userEmail || "Jinete"}
-            </span>
-            .
-          </p>
-          {center ? (
-            <p className="text-gray-300 text-sm">
-              Centro hípico:{" "}
-              <span className="font-semibold">{center.name}</span>
-            </p>
-          ) : (
-            <p className="text-yellow-400 text-sm">
-              Aún no tienes centro hípico asignado.
+    <main className="min-h-screen bg-black text-white p-6 space-y-8">
+      {/* Información del jinete */}
+      <section className="border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70">
+        <h1 className="text-2xl font-bold mb-2">Hola, {userInfo?.name}</h1>
+        <p className="text-sm text-zinc-300">
+          Sesión iniciada como <span className="font-mono">{userInfo?.email}</span>
+        </p>
+      </section>
+
+      {/* Buscador de centros */}
+      <section className="border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70 space-y-4">
+        <h2 className="text-xl font-semibold">Buscar centro hípico</h2>
+
+        <input
+          type="text"
+          placeholder="Busca un centro por nombre..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full rounded border border-zinc-700 bg-black/70 p-2 text-sm"
+        />
+
+        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3 max-h-64 overflow-y-auto">
+          {filteredCenters.map((center) => (
+            <button
+              key={center.id}
+              type="button"
+              onClick={() => setActiveCenterId(center.id)}
+              className={`text-left border rounded-lg px-3 py-2 text-sm bg-black/60 hover:border-blue-500 transition ${
+                activeCenterId === center.id
+                  ? "border-blue-500"
+                  : "border-zinc-700"
+              }`}
+            >
+              {center.name}
+            </button>
+          ))}
+          {filteredCenters.length === 0 && (
+            <p className="text-sm text-zinc-400">
+              No se han encontrado centros con ese nombre.
             </p>
           )}
         </div>
-
-        <button
-          onClick={handleLogout}
-          className="self-start md:self-auto bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm"
-        >
-          Cerrar sesión
-        </button>
-      </header>
-
-      {/* Resumen rápido */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="border border-gray-700 rounded-xl p-4 bg-black/40">
-          <p className="text-xs text-gray-400 uppercase">Tus caballos</p>
-          <p className="text-3xl font-bold mt-1">{horses.length}</p>
-          <p className="text-xs text-gray-400 mt-1">
-            Caballos registrados a tu nombre.
-          </p>
-        </div>
-
-        <div className="border border-gray-700 rounded-xl p-4 bg-black/40">
-          <p className="text-xs text-gray-400 uppercase">Centro</p>
-          <p className="text-lg font-semibold mt-1">
-            {center ? center.name : "Sin centro"}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            Más adelante podrás cambiar de centro desde aquí.
-          </p>
-        </div>
-
-        <div className="border border-gray-700 rounded-xl p-4 bg-black/40 flex flex-col justify-between">
-          <div>
-            <p className="text-xs text-gray-400 uppercase">
-              Gestión de caballos
-            </p>
-            <p className="text-sm text-gray-300 mt-1">
-              Añade, edita y gestiona la ficha de cada caballo.
-            </p>
-          </div>
-          <Link
-            href="/dashboard/horses"
-            className="mt-3 inline-block bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm text-center"
-          >
-            Ir a gestionar caballos
-          </Link>
-        </div>
       </section>
 
-      {/* Listado rápido de caballos */}
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">Tus caballos</h2>
-
-        {horses.length === 0 ? (
-          <p className="text-gray-400 text-sm">
-            Todavía no tienes caballos registrados. Empieza desde{" "}
-            <Link href="/dashboard/horses" className="text-blue-400 underline">
-              Gestionar caballos
-            </Link>
-            .
+      {/* Tus centros (donde ya tienes caballos) */}
+      <section className="border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70 space-y-3">
+        <h2 className="text-xl font-semibold">Tus centros</h2>
+        {riderCenters.length === 0 ? (
+          <p className="text-sm text-zinc-400">
+            Aún no tienes ningún caballo registrado.  
+            Busca un centro arriba, selecciónalo y añade tu primer caballo.
           </p>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {horses.map((horse) => (
-              <div
-                key={horse.id}
-                className="border border-gray-700 rounded-xl p-3 bg-black/40 space-y-2"
+          <div className="flex flex-wrap gap-2">
+            {riderCenters.map((center) => (
+              <button
+                key={center.id}
+                type="button"
+                onClick={() => setActiveCenterId(center.id)}
+                className={`px-3 py-1 rounded-full text-sm border transition ${
+                  activeCenterId === center.id
+                    ? "bg-blue-600 border-blue-400"
+                    : "bg-black/60 border-zinc-700 hover:border-blue-500"
+                }`}
               >
-                {horse.photoUrl && (
-                  <img
-                    src={horse.photoUrl}
-                    alt={horse.name}
-                    className="w-full h-32 object-cover rounded"
-                  />
-                )}
-                <div>
-                  <h3 className="font-semibold text-lg">{horse.name}</h3>
-                  <p className="text-xs text-gray-300">
-                    Edad: <span className="font-medium">{horse.age}</span>
-                  </p>
-                  {horse.breed && (
-                    <p className="text-xs text-gray-300">
-                      Raza: <span className="font-medium">{horse.breed}</span>
-                    </p>
-                  )}
-                </div>
-              </div>
+                {center.name}
+              </button>
             ))}
           </div>
         )}
       </section>
+
+      {/* Detalle del centro activo: caballos + formulario */}
+      {activeCenterId && (
+        <section className="space-y-6">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-xl font-semibold">
+              Caballos en{" "}
+              <span className="text-blue-400">
+                {centersById[activeCenterId]?.name ?? "Centro seleccionado"}
+              </span>
+            </h2>
+          </div>
+
+          {/* Formulario para añadir caballo */}
+          <section className="max-w-xl border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70 space-y-3">
+            <h3 className="text-lg font-semibold">Añadir caballo</h3>
+            <form onSubmit={handleSubmitHorse} className="space-y-3">
+              <input
+                type="text"
+                placeholder="Nombre"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full rounded border border-zinc-700 bg-black/70 p-2 text-sm"
+                required
+              />
+
+              <input
+                type="number"
+                placeholder="Edad"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                className="w-full rounded border border-zinc-700 bg-black/70 p-2 text-sm"
+                required
+              />
+
+              <input
+                type="text"
+                placeholder="Raza (opcional)"
+                value={breed}
+                onChange={(e) => setBreed(e.target.value)}
+                className="w-full rounded border border-zinc-700 bg-black/70 p-2 text-sm"
+              />
+
+              <input
+                id="horse-photo"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  setPhotoFile(file);
+                }}
+                className="w-full rounded border border-zinc-700 bg-black/70 p-2 text-sm"
+              />
+
+              {error && (
+                <p className="text-sm text-red-400 bg-red-950/40 border border-red-900 rounded p-2">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loadingHorse}
+                className="w-full rounded bg-blue-600 py-2 text-sm font-semibold disabled:opacity-60"
+              >
+                {loadingHorse ? "Guardando..." : "Guardar caballo"}
+              </button>
+            </form>
+          </section>
+
+          {/* Lista de caballos del centro */}
+          <section>
+            <h3 className="text-lg font-semibold mb-3">Tus caballos aquí</h3>
+            {horsesInActiveCenter.length === 0 ? (
+              <p className="text-sm text-zinc-400">
+                Aún no tienes caballos registrados en este centro.
+              </p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {horsesInActiveCenter.map((horse) => (
+                  <div
+                    key={horse.id}
+                    className="border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70 space-y-2"
+                  >
+                    {horse.photoUrl && (
+                      <img
+                        src={horse.photoUrl}
+                        alt={horse.name}
+                        className="w-full h-40 object-cover rounded-xl"
+                      />
+                    )}
+                    <h4 className="font-bold text-lg">{horse.name}</h4>
+                    <p className="text-sm text-zinc-300">
+                      Edad: {horse.age}
+                    </p>
+                    {horse.breed && (
+                      <p className="text-sm text-zinc-300">
+                        Raza: {horse.breed}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </section>
+      )}
     </main>
   );
-}
+};
+
+export default RiderDashboardPage;
