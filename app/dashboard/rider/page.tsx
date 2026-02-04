@@ -21,6 +21,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import Link from "next/link";
 
 type Horse = {
   id: string;
@@ -388,11 +389,12 @@ const RiderDashboardPage: React.FC = () => {
               </p>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {horsesInActiveCenter.map((horse) => (
-                  <div
-                    key={horse.id}
-                    className="border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70 space-y-2"
-                  >
+              {horsesInActiveCenter.map((horse) => (
+                    <Link
+                      key={horse.id}
+                      href={`/dashboard/horses/${horse.id}`}
+                      className="block border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70 space-y-2 hover:bg-zinc-900/60 transition cursor-pointer"
+                   > 
                     {horse.photoUrl && (
                       <img
                         src={horse.photoUrl}
@@ -409,7 +411,7 @@ const RiderDashboardPage: React.FC = () => {
                         Raza: {horse.breed}
                       </p>
                     )}
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

@@ -1,22 +1,25 @@
+
 "use client";
 
-import React, { useEffect, useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, FormEvent } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { auth, db, storage } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
+  doc,
+  getDoc,
+  Timestamp,
+  deleteDoc,
+  updateDoc,
   collection,
   addDoc,
   onSnapshot,
   query,
   where,
-  Timestamp,
-  doc,
-  getDoc,
-  getDocs,
-  updateDoc,
+  orderBy,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import Link from "next/link";
+import { ref as storageRef, deleteObject, uploadBytes, getDownloadURL } from "firebase/storage";
 
 type Horse = {
   id: string;
@@ -28,315 +31,452 @@ type Horse = {
   createdAt?: Timestamp;
 };
 
-type Center = {
+type HealthLog = {
   id: string;
-  name: string;
+  horseId: string;
+  ownerId: string;
+  createdAt: Timestamp;
+  temperature?: number;
+  heartRate?: number;
+  weight?: number;
+  notes?: string;
 };
 
-const HorsesPage: React.FC = () => {
+export default function HorseDetailPage() {
   const router = useRouter();
+  const params = useParams();
+  const horseId = params?.id as string;
 
-  // usuario
   const [userId, setUserId] = useState<string | null>(null);
-  const [userCenterId, setUserCenterId] = useState<string | null>(null);
-
-  // centros
-  const [centers, setCenters] = useState<Center[]>([]);
-  const [selectedCenterId, setSelectedCenterId] = useState("");
-
-  const [loadingUser, setLoadingUser] = useState(true);
-  const [savingCenter, setSavingCenter] = useState(false);
-
-  // caballos
-  const [horses, setHorses] = useState<Horse[]>([]);
-  const [name, setName] = useState("");
-  const [age, setAge] = useState<string>("");
-  const [breed, setBreed] = useState("");
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-
-  const [loading, setLoading] = useState(false);
+  const [horse, setHorse] = useState<Horse | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
-  // 1️⃣ Auth + cargar usuario + centro + centros
+  // Estado para edición
+  const [editName, setEditName] = useState("");
+  const [editAge, setEditAge] = useState<string>("");
+  const [editBreed, setEditBreed] = useState("");
+  const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // Estado para registros de salud
+  const [logs, setLogs] = useState<HealthLog[]>([]);
+  const [temp, setTemp] = useState<string>("");
+  const [heartRate, setHeartRate] = useState<string>("");
+  const [weight, setWeight] = useState<string>("");
+  const [notes, setNotes] = useState("");
+  const [savingLog, setSavingLog] = useState(false);
+
+  // Proteger ruta
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
+    const unsub = onAuthStateChanged(auth, (user) => {
       if (!user) {
         router.push("/login");
-        return;
-      }
-
-      setUserId(user.uid);
-
-      try {
-        const userRef = doc(db, "users", user.uid);
-        const snap = await getDoc(userRef);
-
-        if (snap.exists()) {
-          const data = snap.data() as { centerId?: string | null };
-          if (data.centerId) {
-            // Ya tiene centro asignado
-            setUserCenterId(data.centerId);
-          } else {
-            // No tiene centro: cargamos lista de centros para que elija
-            const centersSnap = await getDocs(collection(db, "centers"));
-            const centersData: Center[] = centersSnap.docs.map((d) => ({
-              id: d.id,
-              ...(d.data() as { name: string }),
-            }));
-            setCenters(centersData);
-          }
-        }
-      } catch (err) {
-        console.error("Error cargando usuario/centros:", err);
-        setError("No se pudieron cargar tus datos.");
-      } finally {
-        setLoadingUser(false);
+      } else {
+        setUserId(user.uid);
       }
     });
 
     return () => unsub();
   }, [router]);
 
-  // 2️⃣ Suscripción a caballos del jinete
+  // Cargar datos del caballo
   useEffect(() => {
-    if (!userId) return;
+    const fetchHorse = async () => {
+      if (!userId || !horseId) return;
 
-    const q = query(collection(db, "horses"), where("ownerId", "==", userId));
+      try {
+        const ref = doc(db, "horses", horseId);
+        const snap = await getDoc(ref);
 
-    const unsub = onSnapshot(q, (snapshot) => {
-      const data: Horse[] = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<Horse, "id">),
+        if (!snap.exists()) {
+          setError("El caballo no existe");
+          setLoading(false);
+          return;
+        }
+
+        const data = snap.data() as Omit<Horse, "id">;
+
+        if (data.ownerId !== userId) {
+          setError("No tienes permiso para ver este caballo");
+          setLoading(false);
+          return;
+        }
+
+        const fullHorse: Horse = { id: horseId, ...data };
+        setHorse(fullHorse);
+
+        // Rellenar campos de edición
+        setEditName(fullHorse.name);
+        setEditAge(String(fullHorse.age));
+        setEditBreed(fullHorse.breed || "");
+      } catch (err) {
+        console.error(err);
+        setError("Error al cargar el caballo");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHorse();
+  }, [userId, horseId]);
+
+  // Cargar registros de salud
+  useEffect(() => {
+    if (!userId || !horseId) return;
+
+    const q = query(
+      collection(db, "healthLogs"),
+      where("horseId", "==", horseId),
+      where("ownerId", "==", userId),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      const data: HealthLog[] = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<HealthLog, "id">),
       }));
-      setHorses(data);
+      setLogs(data);
     });
 
     return () => unsub();
-  }, [userId]);
+  }, [userId, horseId]);
 
-  // 3️⃣ Subir foto a Storage
-  const uploadHorsePhoto = async (file: File, userId: string) => {
-    console.log("📤 Empezando subida de foto...");
+  const handleDelete = async () => {
+    if (!userId || !horse) return;
 
-    const filePath = `horses/${userId}/${Date.now()}-${file.name}`;
-    const storageRef = ref(storage, filePath);
+    const confirmDelete = window.confirm(
+      `¿Seguro que quieres eliminar a ${horse.name}? Esta acción no se puede deshacer.`
+    );
 
-    console.log("➡️ Llamando a uploadBytes...");
-    const snapshot = await uploadBytes(storageRef, file);
-    console.log("✅ uploadBytes OK, obteniendo URL...");
-    const url = await getDownloadURL(snapshot.ref);
-    console.log("✅ URL obtenida:", url);
+    if (!confirmDelete) return;
 
-    return url;
-  };
-
-  // 4️⃣ Guardar caballo
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!userId) return;
-    if (!userCenterId) {
-      setError("Antes de añadir caballos debes elegir tu centro hípico.");
-      return;
-    }
-
+    setDeleting(true);
     setError("");
-    setLoading(true);
-    console.log("🚀 handleSubmit iniciado");
 
     try {
-      let photoUrl: string | null = null;
-
-      if (photoFile) {
-        console.log("🖼 Hay foto, subiendo...");
-        photoUrl = await uploadHorsePhoto(photoFile, userId);
-        console.log("🖼 Foto subida, URL:", photoUrl);
-      } else {
-        console.log("❕ No hay foto, solo guardo datos");
+      // Borrar foto si existe
+      if (horse.photoUrl) {
+        const fileRef = storageRef(storage, horse.photoUrl);
+        await deleteObject(fileRef);
       }
 
-      await addDoc(collection(db, "horses"), {
-        name,
-        age: Number(age),
-        breed,
-        ownerId: userId,
-        centerId: userCenterId, // por si luego quieres filtrar por centro
-        photoUrl,
-        createdAt: Timestamp.now(),
-      });
-      console.log("✅ Caballo guardado en Firestore");
+      // Borrar documento
+      await deleteDoc(doc(db, "horses", horse.id));
 
-      // Limpiar formulario
-      setName("");
-      setAge("");
-      setBreed("");
-      setPhotoFile(null);
-      (document.getElementById("horse-photo") as HTMLInputElement).value = "";
-    } catch (err) {
-      console.error("❌ ERROR en handleSubmit:", err);
-      setError("Error al guardar el caballo");
-    } finally {
-      console.log("🏁 handleSubmit terminado, setLoading(false)");
-      setLoading(false);
-    }
-  };
-
-  // 5️⃣ Guardar centro elegido por el jinete
-  const handleSaveCenter = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!userId || !selectedCenterId) return;
-
-    setError("");
-    setSavingCenter(true);
-
-    try {
-      await updateDoc(doc(db, "users", userId), {
-        centerId: selectedCenterId,
-      });
-      setUserCenterId(selectedCenterId);
+      router.push("/dashboard/horses");
     } catch (err) {
       console.error(err);
-      setError("No se pudo guardar el centro. Inténtalo de nuevo.");
-    } finally {
-      setSavingCenter(false);
+      setError("No se ha podido eliminar el caballo");
+      setDeleting(false);
     }
   };
 
+  const handleEdit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!userId || !horse) return;
+
+    setSavingEdit(true);
+    setError("");
+
+    try {
+      let updatedPhotoUrl = horse.photoUrl || null;
+
+      // Si hay nueva foto, subirla y (opcional) borrar la antigua
+      if (newPhotoFile) {
+        const filePath = `horses/${userId}/${Date.now()}-${newPhotoFile.name}`;
+        const sRef = storageRef(storage, filePath);
+        const snapshot = await uploadBytes(sRef, newPhotoFile);
+        const url = await getDownloadURL(snapshot.ref);
+
+        // borrar antigua si existía
+        if (horse.photoUrl) {
+          const oldRef = storageRef(storage, horse.photoUrl);
+          await deleteObject(oldRef).catch(() => {});
+        }
+
+        updatedPhotoUrl = url;
+      }
+
+      await updateDoc(doc(db, "horses", horse.id), {
+        name: editName,
+        age: Number(editAge),
+        breed: editBreed,
+        photoUrl: updatedPhotoUrl,
+      });
+
+      // Actualizar estado local
+      setHorse((prev) =>
+        prev
+          ? {
+              ...prev,
+              name: editName,
+              age: Number(editAge),
+              breed: editBreed,
+              photoUrl: updatedPhotoUrl || undefined,
+            }
+          : prev
+      );
+
+      setNewPhotoFile(null);
+      (document.getElementById("new-horse-photo") as HTMLInputElement).value =
+        "";
+    } catch (err) {
+      console.error(err);
+      setError("No se han podido guardar los cambios");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleAddLog = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!userId || !horse) return;
+
+    setSavingLog(true);
+    setError("");
+
+    try {
+      await addDoc(collection(db, "healthLogs"), {
+        horseId: horse.id,
+        ownerId: userId,
+        createdAt: Timestamp.now(),
+        temperature: temp ? Number(temp) : null,
+        heartRate: heartRate ? Number(heartRate) : null,
+        weight: weight ? Number(weight) : null,
+        notes: notes || null,
+      });
+
+      setTemp("");
+      setHeartRate("");
+      setWeight("");
+      setNotes("");
+    } catch (err) {
+      console.error(err);
+      setError("No se ha podido guardar el registro de salud");
+    } finally {
+      setSavingLog(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="p-6">
+        <p>Cargando caballo...</p>
+      </main>
+    );
+  }
+
+  if (error || !horse) {
+    return (
+      <main className="p-6 space-y-4">
+        <p className="text-red-400">{error || "Caballo no encontrado"}</p>
+        <Link
+          href="/dashboard/horses"
+          className="text-blue-400 underline text-sm"
+        >
+          ← Volver a mis caballos
+        </Link>
+      </main>
+    );
+  }
+
+  const createdDate = horse.createdAt
+    ? horse.createdAt.toDate().toLocaleString()
+    : null;
+
   return (
-    <main className="p-6 space-y-6 text-white bg-black min-h-screen">
-      <h1 className="text-3xl font-bold mb-4">Caballos</h1>
+    <main className="p-6 space-y-6">
+      <Link
+        href="/dashboard/horses"
+        className="text-blue-400 underline text-sm"
+      >
+        ← Volver a mis caballos
+      </Link>
 
-      {/* Bloque para elegir centro si el jinete aún no tiene uno */}
-      {loadingUser ? (
-        <p className="text-sm text-gray-300">Comprobando tus datos...</p>
-      ) : !userCenterId ? (
-        <section className="max-w-md border rounded-xl p-4 mb-8 bg-black/20">
-          <h2 className="text-xl font-semibold mb-2">Elige tu centro hípico</h2>
+      <section className="max-w-3xl border rounded-xl p-4 bg-black/20 space-y-6">
+        {/* Cabecera + eliminar */}
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-3xl font-bold">{horse.name}</h1>
 
-          {centers.length === 0 ? (
-            <p className="text-sm text-gray-300">
-              De momento no hay centros creados. Pídele a tu centro que se
-              registre como propietario en EquiData.
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="bg-red-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
+          >
+            {deleting ? "Eliminando..." : "Eliminar caballo"}
+          </button>
+        </div>
+
+        {/* Foto */}
+        {horse.photoUrl && (
+          <img
+            src={horse.photoUrl}
+            alt={horse.name}
+            className="w-full max-h-80 object-cover rounded"
+          />
+        )}
+
+        {/* Info básica */}
+        <div className="space-y-1">
+          <p>
+            <span className="font-semibold">Edad:</span> {horse.age} años
+          </p>
+          {horse.breed && (
+            <p>
+              <span className="font-semibold">Raza:</span> {horse.breed}
             </p>
-          ) : (
-            <form onSubmit={handleSaveCenter} className="space-y-3">
-              <select
-                value={selectedCenterId}
-                onChange={(e) => setSelectedCenterId(e.target.value)}
-                className="border p-2 rounded w-full bg-black/30"
-                required
-              >
-                <option value="">Selecciona un centro</option>
-                {centers.map((center) => (
-                  <option key={center.id} value={center.id}>
-                    {center.name}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                type="submit"
-                disabled={savingCenter || !selectedCenterId}
-                className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
-              >
-                {savingCenter ? "Guardando..." : "Guardar centro"}
-              </button>
-            </form>
           )}
-        </section>
-      ) : null}
+          {createdDate && (
+            <p className="text-sm text-gray-300">
+              Registrado el: {createdDate}
+            </p>
+          )}
+        </div>
 
-      {/* Solo mostramos el formulario/listado de caballos cuando ya tiene centro */}
-      {userCenterId && (
-        <>
-          {/* Formulario */}
-          <section className="max-w-md border rounded-xl p-4 space-y-3 bg-black/20">
-            <h2 className="text-xl font-semibold">Añadir caballo</h2>
+        {/* Editar caballo */}
+        <div className="pt-4 border-t border-white/10">
+          <h2 className="text-xl font-semibold mb-2">Editar datos</h2>
 
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <input
-                type="text"
-                placeholder="Nombre"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="border p-2 rounded w-full"
-                required
-              />
+          <form onSubmit={handleEdit} className="space-y-3 max-w-md">
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="border p-2 rounded w-full"
+              placeholder="Nombre"
+              required
+            />
 
+            <input
+              type="number"
+              value={editAge}
+              onChange={(e) => setEditAge(e.target.value)}
+              className="border p-2 rounded w-full"
+              placeholder="Edad"
+              required
+            />
+
+            <input
+              type="text"
+              value={editBreed}
+              onChange={(e) => setEditBreed(e.target.value)}
+              className="border p-2 rounded w-full"
+              placeholder="Raza (opcional)"
+            />
+
+            <input
+              id="new-horse-photo"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                setNewPhotoFile(file);
+              }}
+              className="border p-2 rounded w-full bg-black/30"
+            />
+
+            <button
+              type="submit"
+              disabled={savingEdit}
+              className="bg-blue-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
+            >
+              {savingEdit ? "Guardando..." : "Guardar cambios"}
+            </button>
+          </form>
+        </div>
+
+        {/* Salud y seguimiento */}
+        <div className="pt-4 border-t border-white/10 space-y-4">
+          <h2 className="text-xl font-semibold">Salud y seguimiento</h2>
+
+          {/* Formulario nuevo registro */}
+          <form
+            onSubmit={handleAddLog}
+            className="space-y-3 max-w-md border rounded-xl p-3 bg-black/30"
+          >
+            <div className="grid grid-cols-3 gap-2">
               <input
                 type="number"
-                placeholder="Edad"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                className="border p-2 rounded w-full"
-                required
+                step="0.1"
+                placeholder="Temp (ºC)"
+                value={temp}
+                onChange={(e) => setTemp(e.target.value)}
+                className="border p-2 rounded w-full text-sm"
               />
-
               <input
-                type="text"
-                placeholder="Raza (opcional)"
-                value={breed}
-                onChange={(e) => setBreed(e.target.value)}
-                className="border p-2 rounded w-full"
+                type="number"
+                placeholder="Pulso (lpm)"
+                value={heartRate}
+                onChange={(e) => setHeartRate(e.target.value)}
+                className="border p-2 rounded w-full text-sm"
               />
-
               <input
-                id="horse-photo"
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] || null;
-                  setPhotoFile(file);
-                }}
-                className="border p-2 rounded w-full bg-black/30"
+                type="number"
+                step="0.1"
+                placeholder="Peso (kg)"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                className="border p-2 rounded w-full text-sm"
               />
-
-              {error && (
-                <p className="text-red-500 text-sm bg-red-950/40 border border-red-900 rounded p-2">
-                  {error}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
-              >
-                {loading ? "Guardando..." : "Guardar caballo"}
-              </button>
-            </form>
-          </section>
-
-          {/* Listado */}
-          <section>
-            <h2 className="text-xl font-semibold mb-3">Mis caballos</h2>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {horses.map((horse) => (
-                <div
-                  key={horse.id}
-                  className="border rounded-xl p-4 bg-black/30 space-y-2"
-                >
-                  {horse.photoUrl && (
-                    <img
-                      src={horse.photoUrl}
-                      alt={horse.name}
-                      className="w-full h-40 object-cover rounded"
-                    />
-                  )}
-
-                  <h3 className="font-bold text-lg">{horse.name}</h3>
-                  <p className="text-sm text-gray-300">Edad: {horse.age}</p>
-                  {horse.breed && (
-                    <p className="text-sm text-gray-300">Raza: {horse.breed}</p>
-                  )}
-                </div>
-              ))}
             </div>
-          </section>
-        </>
-      )}
+
+            <textarea
+              placeholder="Notas (opcional)"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="border p-2 rounded w-full text-sm"
+              rows={2}
+            />
+
+            <button
+              type="submit"
+              disabled={savingLog}
+              className="bg-green-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
+            >
+              {savingLog ? "Guardando registro..." : "Añadir registro de salud"}
+            </button>
+          </form>
+
+          {/* Lista de registros */}
+          <div className="space-y-2">
+            {logs.length === 0 ? (
+              <p className="text-sm text-gray-300">
+                Aún no hay registros de salud para este caballo.
+              </p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {logs.map((log) => (
+                  <li
+                    key={log.id}
+                    className="border rounded-lg p-2 bg-black/30"
+                  >
+                    <p className="font-semibold">
+                      {log.createdAt.toDate().toLocaleString()}
+                    </p>
+                    <p>
+                      Temp: {log.temperature ?? "-"} ºC · Pulso:{" "}
+                      {log.heartRate ?? "-"} lpm · Peso: {log.weight ?? "-"} kg
+                    </p>
+                    {log.notes && (
+                      <p className="text-gray-300 mt-1">
+                        Notas: {log.notes}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        {error && <p className="text-red-400 text-sm">{error}</p>}
+      </section>
     </main>
   );
-};
+}
 
-export default HorsesPage;
+
+
