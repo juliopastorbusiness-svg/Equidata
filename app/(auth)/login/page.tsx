@@ -1,8 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
@@ -17,7 +17,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 👇 función que decide a qué dashboard mandar según rol
   const redirectByRole = (role?: string | null) => {
     if (role === "rider") {
       router.push("/dashboard/rider");
@@ -30,30 +29,6 @@ export default function LoginPage() {
     }
   };
 
-  // 👇 SOLO redirigir si YA hay sesión
-  // Ojo: si NO hay usuario, NO hacemos nada (no vamos a /register)
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        // No hay usuario: dejamos al usuario en /login tranquilamente
-        return;
-      }
-
-      try {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        const role = userDoc.exists()
-          ? (userDoc.data().role as string | undefined)
-          : undefined;
-        redirectByRole(role);
-      } catch (err) {
-        console.error("Error leyendo datos de usuario:", err);
-      }
-    });
-
-    return () => unsub();
-  }, []);
-
-  // 👇 Envío del formulario de login
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
@@ -71,7 +46,7 @@ export default function LoginPage() {
       redirectByRole(role);
     } catch (err: any) {
       console.error(err);
-      setError("Correo o contraseña incorrectos.");
+      setError("Correo o contrasena incorrectos.");
     } finally {
       setLoading(false);
     }
@@ -80,11 +55,11 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-black text-white">
       <div className="w-full max-w-md border border-zinc-700 rounded-2xl p-6 bg-zinc-950/80 space-y-4">
-        <h1 className="text-2xl font-bold text-center">Iniciar sesión</h1>
+        <h1 className="text-2xl font-bold text-center">Iniciar sesion</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm mb-1">Correo electrónico</label>
+            <label className="block text-sm mb-1">Correo electronico</label>
             <input
               type="email"
               className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
@@ -95,7 +70,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm mb-1">Contraseña</label>
+            <label className="block text-sm mb-1">Contrasena</label>
             <input
               type="password"
               className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
@@ -121,13 +96,13 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-2 text-center text-xs text-zinc-400">
-          ¿No tienes cuenta?{" "}
+          No tienes cuenta?{" "}
           <button
             type="button"
             onClick={() => router.push("/register")}
             className="text-blue-400 hover:underline"
           >
-            Regístrate
+            Registrate
           </button>
         </p>
       </div>
