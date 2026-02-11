@@ -22,6 +22,7 @@ import {
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import Link from "next/link";
+import { isDev } from "@/lib/env";
 
 type Horse = {
   id: string;
@@ -47,6 +48,7 @@ type UserInfo = {
 
 const RiderDashboardPage: React.FC = () => {
   const router = useRouter();
+  const devMode = isDev();
 
   const [userId, setUserId] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
@@ -86,8 +88,9 @@ const RiderDashboardPage: React.FC = () => {
           const data = userSnap.data() as UserInfo;
           setUserInfo(data);
 
-          // Si NO es jinete, lo sacamos a su dashboard correspondiente
-          if (data.role && data.role !== "rider") {
+          // En PROD, si NO es jinete lo redirigimos por rol.
+          // En DEV permitimos entrar para pruebas manuales.
+          if (!devMode && data.role && data.role !== "rider") {
             if (data.role === "centerOwner") {
               router.push("/dashboard/center");
             } else if (data.role === "pro") {
@@ -113,7 +116,7 @@ const RiderDashboardPage: React.FC = () => {
     });
 
     return () => unsub();
-  }, [router]);
+  }, [devMode, router]);
 
   // 2️⃣ Suscripción a TODOS los caballos de este jinete
   useEffect(() => {

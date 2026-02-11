@@ -19,6 +19,7 @@ import {
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import Link from "next/link";
+import { isDev } from "@/lib/env";
 
 type Center = {
   id: string;
@@ -59,6 +60,7 @@ type MedicalNote = {
 
 export default function ProDashboardPage() {
   const router = useRouter();
+  const devMode = isDev();
 
   const [userId, setUserId] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
@@ -101,7 +103,9 @@ export default function ProDashboardPage() {
           const data = userSnap.data() as UserInfo;
           setUserInfo(data);
 
-          if (data.role && data.role !== "pro") {
+          // En PROD, si NO es pro lo redirigimos por rol.
+          // En DEV permitimos entrar para pruebas manuales.
+          if (!devMode && data.role && data.role !== "pro") {
             if (data.role === "rider") {
               router.push("/dashboard/rider");
             } else if (data.role === "centerOwner") {
@@ -126,7 +130,7 @@ export default function ProDashboardPage() {
     });
 
     return () => unsub();
-  }, [router]);
+  }, [devMode, router]);
 
   useEffect(() => {
     if (!activeCenterId) {
