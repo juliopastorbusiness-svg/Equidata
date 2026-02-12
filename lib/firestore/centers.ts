@@ -2,7 +2,6 @@ import {
   collection,
   collectionGroup,
   doc,
-  documentId,
   getDoc,
   getDocs,
   query,
@@ -25,6 +24,7 @@ type CenterDoc = {
 };
 
 type CenterMemberDoc = {
+  uid?: string;
   role?: string;
   displayName?: string;
   email?: string;
@@ -93,8 +93,9 @@ export const getCenterMemberships = async (
   });
 
   try {
+    const centerNameCache = new Map<string, string>();
     const membersSnap = await getDocs(
-      query(collectionGroup(db, "members"), where(documentId(), "==", uid))
+      query(collectionGroup(db, "members"), where("uid", "==", uid))
     );
 
     for (const memberDoc of membersSnap.docs) {
@@ -118,10 +119,14 @@ export const getCenterMemberships = async (
         continue;
       }
 
-      let centerName = "Centro sin nombre";
-      const centerSnap = await getDoc(doc(db, "centers", centerId));
-      if (centerSnap.exists()) {
-        centerName = readCenterName(centerSnap.data() as CenterDoc);
+      let centerName = centerNameCache.get(centerId);
+      if (!centerName) {
+        centerName = "Centro sin nombre";
+        const centerSnap = await getDoc(doc(db, "centers", centerId));
+        if (centerSnap.exists()) {
+          centerName = readCenterName(centerSnap.data() as CenterDoc);
+        }
+        centerNameCache.set(centerId, centerName);
       }
 
       upsertMembership(membershipMap, {
@@ -165,4 +170,3 @@ export const pickLegacyRoleHome = (profile: UserProfile | null): string => {
   if (role === "rider") return "/dashboard/rider";
   return "/dashboard";
 };
-
