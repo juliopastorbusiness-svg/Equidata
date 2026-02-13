@@ -1,11 +1,17 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
+import { Cormorant_Garamond } from "next/font/google";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
-import { CenterHeader } from "@/components/center/CenterHeader";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+});
 
 export default function CenterDashboardPage() {
   const router = useRouter();
@@ -51,12 +57,46 @@ export default function CenterDashboardPage() {
 
   return (
     <main className="min-h-screen bg-brand-background text-brand-text">
-      <CenterHeader
-        title="Centro"
-        subtitle={`Centro activo: ${activeCenterName ?? "Sin centro seleccionado"}`}
-        primaryActionLabel="Cerrar sesion"
-        onPrimaryAction={handleLogout}
-      />
+      <header className="relative flex items-center justify-between py-6 px-8">
+        {/* Logo izquierda */}
+        <div className="flex items-center pl-4">
+          <Image
+            src="/logo-equidata.png"
+            alt="Equidata"
+            width={180}
+            height={180}
+            priority
+            className="opacity-95"
+          />
+        </div>
+
+        {/* Nombre centro centrado */}
+        <h1
+          className={`
+            ${cormorant.className}
+            absolute
+            left-1/2
+            -translate-x-1/2
+            max-w-[60vw]
+            truncate
+            text-center
+            text-[36px]
+            tracking-[0.08em]
+            font-medium
+            text-brand-text
+          `}
+        >
+          {activeCenterName ?? "Centro"}
+        </h1>
+
+        {/* Botón derecha */}
+        <button
+          onClick={handleLogout}
+          className="mr-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-primaryHover transition"
+        >
+          Cerrar sesión
+        </button>
+      </header>
 
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
         {isDevBypass && (
