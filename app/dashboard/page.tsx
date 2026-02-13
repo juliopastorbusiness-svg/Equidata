@@ -81,8 +81,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-black text-white">
-      <div className="w-full max-w-md border border-zinc-700 rounded-2xl p-6 bg-zinc-950/80">
+    <main className="min-h-screen flex items-center justify-center bg-brand-background text-brand-text">
+      <div className="w-full max-w-md border border-brand-border rounded-2xl p-6 bg-brand-background/80">
         <h1 className="text-2xl font-bold mb-4 text-center">
           Crear cuenta EquiData
         </h1>
@@ -93,7 +93,7 @@ export default function RegisterPage() {
             <label className="block text-sm mb-1">Nombre</label>
             <input
               type="text"
-              className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+              className="w-full rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -105,7 +105,7 @@ export default function RegisterPage() {
             <label className="block text-sm mb-1">Email</label>
             <input
               type="email"
-              className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+              className="w-full rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -117,7 +117,7 @@ export default function RegisterPage() {
             <label className="block text-sm mb-1">Contraseña</label>
             <input
               type="password"
-              className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+              className="w-full rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -172,7 +172,7 @@ export default function RegisterPage() {
               </label>
               <input
                 type="text"
-                className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+                className="w-full rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
                 value={newCenterName}
                 onChange={(e) => setNewCenterName(e.target.value)}
                 placeholder="Ej: Centro Hípico Sevilla"
@@ -190,18 +190,18 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded bg-blue-600 py-2 text-sm font-semibold disabled:opacity-60"
+            className="w-full rounded bg-brand-primary text-white py-2 text-sm font-semibold disabled:opacity-60"
           >
             {loading ? "Creando cuenta..." : "Registrarse"}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-zinc-400">
+        <p className="mt-4 text-center text-xs text-brand-secondary">
           ¿Ya tienes cuenta?{" "}
           <button
             type="button"
             onClick={() => router.push("/login")}
-            className="text-blue-400 hover:underline"
+            className="text-brand-primary hover:underline"
           >
             Inicia sesión
           </button>
@@ -210,3 +210,4 @@ export default function RegisterPage() {
     </main>
   );
 }
+

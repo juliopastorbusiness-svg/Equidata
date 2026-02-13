@@ -275,7 +275,7 @@ export default function HorseDetailPage() {
         <p className="text-red-400">{error || "Caballo no encontrado"}</p>
         <Link
           href="/dashboard/horses"
-          className="text-blue-400 underline text-sm"
+          className="text-brand-primary underline text-sm"
         >
           ← Volver a mis caballos
         </Link>
@@ -291,12 +291,12 @@ export default function HorseDetailPage() {
     <main className="p-6 space-y-6">
       <Link
         href="/dashboard/horses"
-        className="text-blue-400 underline text-sm"
+        className="text-brand-primary underline text-sm"
       >
         ← Volver a mis caballos
       </Link>
 
-      <section className="max-w-3xl border rounded-xl p-4 bg-black/20 space-y-6">
+      <section className="max-w-3xl border rounded-xl p-4 bg-brand-background/20 space-y-6">
         {/* Cabecera + eliminar */}
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-3xl font-bold">{horse.name}</h1>
@@ -337,7 +337,7 @@ export default function HorseDetailPage() {
         </div>
 
         {/* Editar caballo */}
-        <div className="pt-4 border-t border-white/10">
+        <div className="pt-4 border-t border-brand-border">
           <h2 className="text-xl font-semibold mb-2">Editar datos</h2>
 
           <form onSubmit={handleEdit} className="space-y-3 max-w-md">
@@ -375,13 +375,13 @@ export default function HorseDetailPage() {
                 const file = e.target.files?.[0] || null;
                 setNewPhotoFile(file);
               }}
-              className="border p-2 rounded w-full bg-black/30"
+              className="border p-2 rounded w-full bg-brand-background/30"
             />
 
             <button
               type="submit"
               disabled={savingEdit}
-              className="bg-blue-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
+              className="bg-brand-primary text-white px-4 py-2 rounded text-sm disabled:opacity-50"
             >
               {savingEdit ? "Guardando..." : "Guardar cambios"}
             </button>
@@ -389,13 +389,13 @@ export default function HorseDetailPage() {
         </div>
 
         {/* Salud y seguimiento */}
-        <div className="pt-4 border-t border-white/10 space-y-4">
+        <div className="pt-4 border-t border-brand-border space-y-4">
           <h2 className="text-xl font-semibold">Salud y seguimiento</h2>
 
           {/* Formulario nuevo registro */}
           <form
             onSubmit={handleAddLog}
-            className="space-y-3 max-w-md border rounded-xl p-3 bg-black/30"
+            className="space-y-3 max-w-md border rounded-xl p-3 bg-brand-background/30"
           >
             <div className="grid grid-cols-3 gap-2">
               <input
@@ -434,7 +434,7 @@ export default function HorseDetailPage() {
             <button
               type="submit"
               disabled={savingLog}
-              className="bg-green-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
+              className="bg-brand-primary text-white px-4 py-2 rounded text-sm disabled:opacity-50"
             >
               {savingLog ? "Guardando registro..." : "Añadir registro de salud"}
             </button>
@@ -451,7 +451,7 @@ export default function HorseDetailPage() {
                 {logs.map((log) => (
                   <li
                     key={log.id}
-                    className="border rounded-lg p-2 bg-black/30"
+                    className="border rounded-lg p-2 bg-brand-background/30"
                   >
                     <p className="font-semibold">
                       {log.createdAt.toDate().toLocaleString()}
@@ -477,6 +477,7 @@ export default function HorseDetailPage() {
     </main>
   );
 }
+
 
 
 

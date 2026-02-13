@@ -3,53 +3,45 @@ import Link from "next/link";
 export default function Home() {
   return (
     <main
-      className="relative min-h-screen bg-cover bg-center text-white"
+      className="relative min-h-screen overflow-hidden bg-brand-background bg-cover bg-center bg-no-repeat text-brand-text"
       style={{ backgroundImage: "url('/fondo1.jpg')" }}
     >
-      <div className="relative z-10 flex min-h-screen items-center justify-center p-6">
-        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/60 p-8 space-y-6 backdrop-blur">
-          <div className="space-y-2 text-center">
-            <h1 className="text-4xl font-bold tracking-tight">Equidata</h1>
-            <p className="text-sm text-zinc-300">
-              Gestion para centros hipicos, jinetes y profesionales
+      <div className="absolute inset-0 bg-brand-background/65" />
+      <div className="absolute inset-0 bg-gradient-to-b from-brand-background/20 via-brand-background/40 to-brand-background/75" />
+
+      <div className="relative z-10 flex min-h-screen items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-xl rounded-3xl border border-brand-border bg-brand-background/40 p-7 shadow-2xl backdrop-blur-md sm:p-10">
+          <div className="text-center">
+            <p className="text-sm font-medium uppercase tracking-[0.18em] text-brand-secondary">
+              Equidata
+            </p>
+            <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">
+              Gestion simple para tu centro hipico
+            </h1>
+            <p className="mt-4 text-base text-brand-text sm:text-lg">
+              Entra rapido y ve directo a las tareas del dia.
             </p>
           </div>
 
-          <div className="grid gap-3">
+          <div className="mt-8 grid gap-3">
             <Link
               href="/login"
-              className="w-full rounded bg-blue-600 py-2 text-center text-sm font-semibold hover:bg-blue-500 transition"
+              className="inline-flex h-14 w-full items-center justify-center rounded-xl bg-brand-primary px-4 text-lg font-semibold text-white transition hover:bg-brand-primaryHover"
             >
               Iniciar sesion
             </Link>
             <Link
               href="/register"
-              className="w-full rounded border border-zinc-600 py-2 text-center text-sm font-semibold hover:border-zinc-400 transition"
+              className="inline-flex h-14 w-full items-center justify-center rounded-xl border border-brand-border bg-white/5 px-4 text-lg font-semibold text-brand-text transition hover:bg-brand-background/60"
             >
               Registrarme
             </Link>
-          </div>
-
-          <div className="text-xs text-zinc-400 text-center space-y-2">
-            <p>Modo desarrollo: accesos directos</p>
-            <div className="grid gap-1">
-              <Link href="/dashboard/rider" className="underline">
-                /dashboard/rider
-              </Link>
-              <Link href="/dashboard/center" className="underline">
-                /dashboard/center
-              </Link>
-              <Link href="/dashboard/center/feed" className="underline">
-                /dashboard/center/feed
-              </Link>
-              <Link href="/dashboard/pro" className="underline">
-                /dashboard/pro
-              </Link>
-            </div>
           </div>
         </div>
       </div>
     </main>
   );
 }
+
+
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { CenterHeader } from "@/components/center/CenterHeader";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
 import {
   addOneOffCharge,
@@ -59,10 +60,10 @@ const fromMonthInput = (value: string): BillingPeriod => {
 
 const statusStyles: Record<string, string> = {
   PAID: "bg-emerald-900/70 text-emerald-200",
-  PENDING: "bg-amber-900/70 text-amber-200",
-  PARTIAL: "bg-blue-900/70 text-blue-200",
+  PENDING: "bg-brand-primary/70 text-brand-secondary",
+  PARTIAL: "bg-brand-primary/15 text-brand-primary",
   OVERDUE: "bg-red-900/70 text-red-200",
-  NO_CHARGES: "bg-zinc-800 text-zinc-200",
+  NO_CHARGES: "bg-brand-background text-brand-text",
 };
 
 const paymentInit: PaymentFormState = {
@@ -314,7 +315,7 @@ export default function CenterBillingPage() {
 
   if (guardLoading) {
     return (
-      <main className="min-h-screen bg-black text-white p-6">
+      <main className="min-h-screen bg-brand-background text-brand-text p-6">
         <p>Cargando permisos del centro...</p>
       </main>
     );
@@ -322,49 +323,56 @@ export default function CenterBillingPage() {
 
   if (!isAllowed) {
     return (
-      <main className="min-h-screen bg-black text-white p-6">
-        <p className="text-red-400">No tienes acceso a Facturacion.</p>
+      <main className="min-h-screen bg-brand-background text-brand-text p-6">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-red-900 bg-red-950/30 p-5">
+          <p className="text-red-300">No tienes acceso a Facturacion.</p>
+          <Link
+            href="/dashboard/center"
+            className="mt-4 inline-flex h-11 items-center rounded-xl border border-brand-border px-4 text-sm font-semibold text-brand-text"
+          >
+            Volver a Centro
+          </Link>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-6 space-y-6">
-      <header className="space-y-2">
-        <Link href="/dashboard/center" className="text-blue-400 underline text-sm">
-          Volver al dashboard de centro
-        </Link>
-        <h1 className="text-3xl font-bold">Facturacion</h1>
-        <p className="text-sm text-zinc-300">
-          Centro activo: {activeCenterName ?? "Sin centro activo"}
-        </p>
+    <main className="min-h-screen bg-brand-background text-brand-text">
+      <CenterHeader
+        title="Facturacion"
+        subtitle={`Centro activo: ${activeCenterName ?? "Sin centro activo"}`}
+        backHref="/dashboard/center"
+        primaryActionLabel="Generar cargos del mes"
+        onPrimaryAction={onGenerateMonthCharges}
+      />
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
         {guardError && (
-          <p className="rounded border border-red-800 bg-red-950/40 p-2 text-sm text-red-300">
+          <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {guardError}
           </p>
         )}
         {error && (
-          <p className="rounded border border-red-800 bg-red-950/40 p-2 text-sm text-red-300">
+          <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {error}
           </p>
         )}
         {info && (
-          <p className="rounded border border-emerald-800 bg-emerald-950/40 p-2 text-sm text-emerald-300">
+          <p className="rounded-xl border border-emerald-800 bg-emerald-950/40 p-3 text-sm text-emerald-300">
             {info}
           </p>
         )}
-      </header>
 
       {memberships.length > 1 && (
-        <section className="max-w-lg rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
-          <label htmlFor="center-selector" className="mb-2 block text-sm text-zinc-300">
+        <section className="max-w-xl rounded-2xl border border-brand-border bg-white/60 p-4">
+          <label htmlFor="center-selector" className="mb-2 block text-sm text-brand-secondary">
             Cambiar centro activo
           </label>
           <select
             id="center-selector"
             value={activeCenterId ?? ""}
             onChange={(event) => setActiveCenterId(event.target.value)}
-            className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+            className="h-11 w-full rounded-xl border border-brand-border bg-brand-background px-3 text-sm"
           >
             {memberships.map((membership) => (
               <option key={membership.centerId} value={membership.centerId}>
@@ -376,63 +384,65 @@ export default function CenterBillingPage() {
       )}
 
       {!activeCenterId ? (
-        <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-sm text-zinc-300">
+        <section className="rounded-2xl border border-brand-border bg-white/60 p-4 text-sm text-brand-secondary">
           No tienes centro asignado.
         </section>
       ) : (
         <>
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-4">
+          <section className="rounded-2xl border border-brand-border bg-white/60 p-4 space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-wide text-zinc-400">Periodo de trabajo</p>
-                <p className="text-sm text-zinc-300">{periodInput}</p>
+                <p className="text-xs uppercase tracking-wide text-brand-secondary">Periodo de trabajo</p>
+                <p className="text-sm text-brand-secondary">{periodInput}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <input
                   type="month"
                   value={periodInput}
                   onChange={(event) => setPeriodInput(event.target.value)}
-                  className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+                  className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
                 />
                 <button
                   type="button"
                   onClick={onGenerateMonthCharges}
                   disabled={saving}
-                  className="rounded bg-blue-600 px-3 py-2 text-sm font-semibold disabled:opacity-60"
+                  className="rounded bg-brand-primary text-white px-3 py-2 text-sm font-semibold disabled:opacity-60"
                 >
                   Generar cargos del mes
                 </button>
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <article className="rounded-xl border border-zinc-800 bg-black/40 p-3">
-                <p className="text-xs uppercase text-zinc-400">Facturado</p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <article className="rounded-xl border border-brand-border bg-brand-background/60 p-3">
+                <p className="text-xs uppercase text-brand-secondary">Facturado</p>
                 <p className="text-2xl font-semibold">{currency.format(kpis.billed)}</p>
               </article>
-              <article className="rounded-xl border border-zinc-800 bg-black/40 p-3">
-                <p className="text-xs uppercase text-zinc-400">Cobrado</p>
+              <article className="rounded-xl border border-brand-border bg-brand-background/60 p-3">
+                <p className="text-xs uppercase text-brand-secondary">Cobrado</p>
                 <p className="text-2xl font-semibold">{currency.format(kpis.collected)}</p>
               </article>
-              <article className="rounded-xl border border-zinc-800 bg-black/40 p-3">
-                <p className="text-xs uppercase text-zinc-400">Pendiente</p>
+              <article className="rounded-xl border border-brand-border bg-brand-background/60 p-3">
+                <p className="text-xs uppercase text-brand-secondary">Pendiente</p>
                 <p className="text-2xl font-semibold">{currency.format(kpis.pending)}</p>
               </article>
-              <article className="rounded-xl border border-zinc-800 bg-black/40 p-3">
-                <p className="text-xs uppercase text-zinc-400">Retrasado</p>
-                <p className="text-2xl font-semibold">{currency.format(kpis.overdue)}</p>
-              </article>
             </div>
+            <p className="text-xs text-brand-secondary">
+              Retrasado:{" "}
+              <span className="font-semibold text-brand-text">
+                {currency.format(kpis.overdue)}
+              </span>
+            </p>
           </section>
 
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-4">
+          <section className="rounded-2xl border border-brand-border bg-white/60 p-4 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="inline-flex rounded-lg border border-zinc-700 p-1">
+              <div className="inline-flex rounded-lg border border-brand-border p-1">
                 <button
                   type="button"
                   onClick={() => setTab("CLIENTS")}
                   className={`rounded px-3 py-1 text-sm ${
-                    tab === "CLIENTS" ? "bg-zinc-200 text-zinc-900" : "text-zinc-300"
+                    tab === "CLIENTS" ? "bg-brand-border text-brand-text" : "text-brand-secondary"
                   }`}
                 >
                   Clientes
@@ -441,7 +451,7 @@ export default function CenterBillingPage() {
                   type="button"
                   onClick={() => setTab("SUMMARY")}
                   className={`rounded px-3 py-1 text-sm ${
-                    tab === "SUMMARY" ? "bg-zinc-200 text-zinc-900" : "text-zinc-300"
+                    tab === "SUMMARY" ? "bg-brand-border text-brand-text" : "text-brand-secondary"
                   }`}
                 >
                   Resumen mensual
@@ -452,7 +462,7 @@ export default function CenterBillingPage() {
                 <select
                   value={summaryRange}
                   onChange={(event) => setSummaryRange(Number(event.target.value) as 6 | 12 | 24)}
-                  className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+                  className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
                 >
                   <option value={6}>Ultimos 6 meses</option>
                   <option value={12}>Ultimos 12 meses</option>
@@ -462,17 +472,17 @@ export default function CenterBillingPage() {
             </div>
 
             {loading ? (
-              <p className="text-sm text-zinc-400">Cargando facturacion...</p>
+              <p className="text-sm text-brand-secondary">Cargando facturacion...</p>
             ) : tab === "CLIENTS" ? (
               clientRows.length === 0 ? (
-                <p className="text-sm text-zinc-400">
+                <p className="text-sm text-brand-secondary">
                   No hay riders con horseStays activos para este periodo.
                 </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-zinc-800 text-left text-zinc-400">
+                      <tr className="border-b border-brand-border text-left text-brand-secondary">
                         <th className="py-2 pr-4">Cliente</th>
                         <th className="py-2 pr-4">Horse stays activos</th>
                         <th className="py-2 pr-4">Importe mes</th>
@@ -483,10 +493,10 @@ export default function CenterBillingPage() {
                     </thead>
                     <tbody>
                       {clientRows.map((row) => (
-                        <tr key={row.riderUid} className="border-b border-zinc-900">
+                        <tr key={row.riderUid} className="border-b border-brand-border">
                           <td className="py-2 pr-4">
                             <p className="font-semibold">{row.riderLabel}</p>
-                            <p className="text-xs text-zinc-500">{row.riderUid}</p>
+                            <p className="text-xs text-brand-secondary">{row.riderUid}</p>
                           </td>
                           <td className="py-2 pr-4">{row.horseCount}</td>
                           <td className="py-2 pr-4">{currency.format(row.monthAmount)}</td>
@@ -504,7 +514,7 @@ export default function CenterBillingPage() {
                             <button
                               type="button"
                               onClick={() => void onOpenDetail(row)}
-                              className="rounded border border-zinc-700 px-2 py-1 text-xs"
+                              className="rounded border border-brand-border px-2 py-1 text-xs"
                             >
                               Ver detalle
                             </button>
@@ -516,12 +526,12 @@ export default function CenterBillingPage() {
                 </div>
               )
             ) : summaryRows.length === 0 ? (
-              <p className="text-sm text-zinc-400">No hay datos para el resumen mensual.</p>
+              <p className="text-sm text-brand-secondary">No hay datos para el resumen mensual.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-zinc-800 text-left text-zinc-400">
+                    <tr className="border-b border-brand-border text-left text-brand-secondary">
                       <th className="py-2 pr-4">Mes</th>
                       <th className="py-2 pr-4">Facturado</th>
                       <th className="py-2 pr-4">Cobrado</th>
@@ -533,7 +543,7 @@ export default function CenterBillingPage() {
                   </thead>
                   <tbody>
                     {summaryRows.map((row) => (
-                      <tr key={row.periodKey} className="border-b border-zinc-900">
+                      <tr key={row.periodKey} className="border-b border-brand-border">
                         <td className="py-2 pr-4">{row.periodLabel}</td>
                         <td className="py-2 pr-4">{currency.format(row.billed)}</td>
                         <td className="py-2 pr-4">{currency.format(row.collected)}</td>
@@ -547,7 +557,7 @@ export default function CenterBillingPage() {
                               setPeriodInput(row.periodKey);
                               setTab("CLIENTS");
                             }}
-                            className="rounded border border-zinc-700 px-2 py-1 text-xs"
+                            className="rounded border border-brand-border px-2 py-1 text-xs"
                           >
                             Ver desglose
                           </button>
@@ -563,18 +573,18 @@ export default function CenterBillingPage() {
       )}
 
       {detailOpen && selectedClient && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/60">
-          <aside className="h-full w-full max-w-3xl overflow-y-auto border-l border-zinc-800 bg-zinc-950 p-4 space-y-4">
+        <div className="fixed inset-0 z-50 flex justify-end bg-brand-background/60">
+          <aside className="h-full w-full max-w-3xl overflow-y-auto border-l border-brand-border bg-brand-background p-4 space-y-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-xl font-semibold">Detalle cliente</h2>
-                <p className="text-sm text-zinc-300">{selectedClient.riderLabel}</p>
-                <p className="text-xs text-zinc-500">{selectedClient.riderUid}</p>
+                <p className="text-sm text-brand-secondary">{selectedClient.riderLabel}</p>
+                <p className="text-xs text-brand-secondary">{selectedClient.riderUid}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setDetailOpen(false)}
-                className="rounded border border-zinc-700 px-2 py-1 text-xs"
+                className="rounded border border-brand-border px-2 py-1 text-xs"
               >
                 Cerrar
               </button>
@@ -585,27 +595,27 @@ export default function CenterBillingPage() {
                 type="button"
                 onClick={onGenerateMonthCharges}
                 disabled={saving}
-                className="rounded bg-blue-600 px-3 py-2 text-sm font-semibold disabled:opacity-60"
+                className="rounded bg-brand-primary text-white px-3 py-2 text-sm font-semibold disabled:opacity-60"
               >
                 Generar cargos del mes
               </button>
-              <span className="text-xs text-zinc-400">Periodo: {periodInput}</span>
+              <span className="text-xs text-brand-secondary">Periodo: {periodInput}</span>
             </div>
 
             {detailLoading ? (
-              <p className="text-sm text-zinc-400">Cargando detalle...</p>
+              <p className="text-sm text-brand-secondary">Cargando detalle...</p>
             ) : (
               <>
-                <section className="rounded-2xl border border-zinc-800 bg-black/40 p-4 space-y-3">
+                <section className="rounded-2xl border border-brand-border bg-brand-background/40 p-4 space-y-3">
                   <h3 className="text-lg font-semibold">Servicios activos</h3>
                   {detailServices.length === 0 ? (
-                    <p className="text-sm text-zinc-500">Sin servicios activos.</p>
+                    <p className="text-sm text-brand-secondary">Sin servicios activos.</p>
                   ) : (
                     <div className="space-y-2">
                       {detailServices.map((service) => (
-                        <div key={service.id} className="rounded border border-zinc-800 p-2 text-sm">
+                        <div key={service.id} className="rounded border border-brand-border p-2 text-sm">
                           <p className="font-semibold">{service.name}</p>
-                          <p className="text-zinc-400">
+                          <p className="text-brand-secondary">
                             {currency.format(service.amount)} / mes - horseId: {service.horseId}
                           </p>
                         </div>
@@ -614,7 +624,7 @@ export default function CenterBillingPage() {
                   )}
                 </section>
 
-                <section className="rounded-2xl border border-zinc-800 bg-black/40 p-4 space-y-3">
+                <section className="rounded-2xl border border-brand-border bg-brand-background/40 p-4 space-y-3">
                   <h3 className="text-lg font-semibold">Registrar pago</h3>
                   <form onSubmit={onSubmitPayment} className="grid gap-2 md:grid-cols-2">
                     <select
@@ -622,7 +632,7 @@ export default function CenterBillingPage() {
                       onChange={(event) =>
                         setPaymentForm((prev) => ({ ...prev, chargeId: event.target.value }))
                       }
-                      className="rounded border border-zinc-700 bg-black/60 p-2 text-sm md:col-span-2"
+                      className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm md:col-span-2"
                     >
                       <option value="">Sin asociar a cargo</option>
                       {pendingClientCharges.map((charge) => (
@@ -640,7 +650,7 @@ export default function CenterBillingPage() {
                         setPaymentForm((prev) => ({ ...prev, amount: event.target.value }))
                       }
                       placeholder="Importe"
-                      className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+                      className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
                       required
                     />
                     <input
@@ -650,7 +660,7 @@ export default function CenterBillingPage() {
                         setPaymentForm((prev) => ({ ...prev, method: event.target.value }))
                       }
                       placeholder="Metodo"
-                      className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+                      className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
                     />
                     <input
                       type="text"
@@ -659,7 +669,7 @@ export default function CenterBillingPage() {
                         setPaymentForm((prev) => ({ ...prev, notes: event.target.value }))
                       }
                       placeholder="Notas"
-                      className="rounded border border-zinc-700 bg-black/60 p-2 text-sm md:col-span-2"
+                      className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm md:col-span-2"
                     />
                     <button
                       disabled={saving}
@@ -670,7 +680,7 @@ export default function CenterBillingPage() {
                   </form>
                 </section>
 
-                <section className="rounded-2xl border border-zinc-800 bg-black/40 p-4 space-y-3">
+                <section className="rounded-2xl border border-brand-border bg-brand-background/40 p-4 space-y-3">
                   <h3 className="text-lg font-semibold">Anadir cargo puntual</h3>
                   <form onSubmit={onSubmitOneOffCharge} className="grid gap-2 md:grid-cols-2">
                     <input
@@ -680,7 +690,7 @@ export default function CenterBillingPage() {
                         setOneOffForm((prev) => ({ ...prev, description: event.target.value }))
                       }
                       placeholder="Descripcion"
-                      className="rounded border border-zinc-700 bg-black/60 p-2 text-sm md:col-span-2"
+                      className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm md:col-span-2"
                       required
                     />
                     <input
@@ -692,7 +702,7 @@ export default function CenterBillingPage() {
                         setOneOffForm((prev) => ({ ...prev, amount: event.target.value }))
                       }
                       placeholder="Importe"
-                      className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+                      className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
                       required
                     />
                     <input
@@ -701,26 +711,26 @@ export default function CenterBillingPage() {
                       onChange={(event) =>
                         setOneOffForm((prev) => ({ ...prev, dueDate: event.target.value }))
                       }
-                      className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+                      className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
                     />
                     <button
                       disabled={saving}
-                      className="rounded bg-blue-600 px-3 py-2 text-sm font-semibold disabled:opacity-60 md:col-span-2"
+                      className="rounded bg-brand-primary text-white px-3 py-2 text-sm font-semibold disabled:opacity-60 md:col-span-2"
                     >
                       Crear cargo puntual
                     </button>
                   </form>
                 </section>
 
-                <section className="rounded-2xl border border-zinc-800 bg-black/40 p-4 space-y-3">
+                <section className="rounded-2xl border border-brand-border bg-brand-background/40 p-4 space-y-3">
                   <h3 className="text-lg font-semibold">Cargos del periodo</h3>
                   {detailCharges.length === 0 ? (
-                    <p className="text-sm text-zinc-500">Sin cargos para este periodo.</p>
+                    <p className="text-sm text-brand-secondary">Sin cargos para este periodo.</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b border-zinc-800 text-left text-zinc-400">
+                          <tr className="border-b border-brand-border text-left text-brand-secondary">
                             <th className="py-2 pr-4">Concepto</th>
                             <th className="py-2 pr-4">Importe</th>
                             <th className="py-2 pr-4">Pendiente</th>
@@ -730,7 +740,7 @@ export default function CenterBillingPage() {
                         </thead>
                         <tbody>
                           {detailCharges.map((charge) => (
-                            <tr key={charge.id} className="border-b border-zinc-900">
+                            <tr key={charge.id} className="border-b border-brand-border">
                               <td className="py-2 pr-4">{charge.description || charge.id}</td>
                               <td className="py-2 pr-4">{currency.format(Number(charge.amount) || 0)}</td>
                               <td className="py-2 pr-4">{currency.format(chargeRemaining(charge))}</td>
@@ -756,6 +766,8 @@ export default function CenterBillingPage() {
           </aside>
         </div>
       )}
+      </div>
     </main>
   );
 }
+

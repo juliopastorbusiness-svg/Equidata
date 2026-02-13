@@ -384,7 +384,7 @@ export default function ProDashboardPage() {
 
   if (loadingInitial) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-black text-white">
+      <main className="min-h-screen flex items-center justify-center bg-brand-background text-brand-text">
         <p>Comprobando sesion...</p>
       </main>
     );
@@ -392,19 +392,19 @@ export default function ProDashboardPage() {
 
   if (!userId) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-black text-white">
+      <main className="min-h-screen flex items-center justify-center bg-brand-background text-brand-text">
         <p>No hay sesion activa.</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-6 space-y-8">
-      <section className="border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70">
+    <main className="min-h-screen bg-brand-background text-brand-text p-6 space-y-8">
+      <section className="border border-brand-border rounded-2xl p-4 bg-brand-background/70">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Dashboard profesional</h1>
-            <p className="text-sm text-zinc-300">
+            <p className="text-sm text-brand-secondary">
               Sesion iniciada como{" "}
               <span className="font-mono">{userInfo?.email}</span>
             </p>
@@ -418,14 +418,14 @@ export default function ProDashboardPage() {
         </div>
       </section>
 
-      <section className="border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70 space-y-3">
+      <section className="border border-brand-border rounded-2xl p-4 bg-brand-background/70 space-y-3">
         <h2 className="text-xl font-semibold">
           Historial de caballos atendidos
         </h2>
         {loadingHistory ? (
-          <p className="text-sm text-zinc-400">Cargando historial...</p>
+          <p className="text-sm text-brand-secondary">Cargando historial...</p>
         ) : historyHorses.length === 0 && cachedHistoryHorses.length === 0 ? (
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-brand-secondary">
             Aun no has registrado anotaciones medicas.
           </p>
         ) : (
@@ -441,10 +441,10 @@ export default function ProDashboardPage() {
                       setActiveCenterId(horse.centerId);
                       setActiveHorseId(horse.id);
                     }}
-                    className="text-left border rounded-xl p-3 bg-black/60 hover:border-blue-500 transition"
+                    className="text-left border rounded-xl p-3 bg-brand-background/60 hover:border-brand-primary transition"
                   >
                     <p className="font-semibold">{horse.name}</p>
-                    <p className="text-xs text-zinc-400">
+                    <p className="text-xs text-brand-secondary">
                       Ultima anotacion: {" "}
                       {lastNote ? lastNote.toDate().toLocaleString() : "-"}
                     </p>
@@ -456,14 +456,14 @@ export default function ProDashboardPage() {
         )}
       </section>
 
-      <section className="border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70 space-y-4">
+      <section className="border border-brand-border rounded-2xl p-4 bg-brand-background/70 space-y-4">
         <h2 className="text-xl font-semibold">Buscar centro hipico</h2>
         <input
           type="text"
           placeholder="Busca un centro por nombre..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full rounded border border-zinc-700 bg-black/70 p-2 text-sm"
+          className="w-full rounded border border-brand-border bg-brand-background/70 p-2 text-sm"
         />
 
         <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3 max-h-64 overflow-y-auto">
@@ -475,17 +475,17 @@ export default function ProDashboardPage() {
                 setActiveCenterId(center.id);
                 setActiveHorseId(null);
               }}
-              className={`text-left border rounded-lg px-3 py-2 text-sm bg-black/60 hover:border-blue-500 transition ${
+              className={`text-left border rounded-lg px-3 py-2 text-sm bg-brand-background/60 hover:border-brand-primary transition ${
                 activeCenterId === center.id
-                  ? "border-blue-500"
-                  : "border-zinc-700"
+                  ? "border-brand-primary"
+                  : "border-brand-border"
               }`}
             >
               {center.name}
             </button>
           ))}
           {filteredCenters.length === 0 && (
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-brand-secondary">
               No se han encontrado centros con ese nombre.
             </p>
           )}
@@ -497,14 +497,14 @@ export default function ProDashboardPage() {
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-xl font-semibold">
               Caballos en{" "}
-              <span className="text-blue-400">
+              <span className="text-brand-primary">
                 {centers.find((c) => c.id === activeCenterId)?.name ??
                   "Centro seleccionado"}
               </span>
             </h2>
             <Link
               href="/dashboard/horses"
-              className="text-blue-400 underline text-sm"
+              className="text-brand-primary underline text-sm"
             >
               Ver mis caballos
             </Link>
@@ -512,17 +512,17 @@ export default function ProDashboardPage() {
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {horses.length === 0 ? (
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-brand-secondary">
                 Este centro aun no tiene caballos registrados.
               </p>
             ) : (
               horses.map((horse) => (
                 <div
                   key={horse.id}
-                  className={`text-left border rounded-2xl p-4 bg-zinc-950/70 space-y-2 ${
+                  className={`text-left border rounded-2xl p-4 bg-brand-background/70 space-y-2 ${
                     activeHorseId === horse.id
-                      ? "border-blue-500"
-                      : "border-zinc-800"
+                      ? "border-brand-primary"
+                      : "border-brand-border"
                   }`}
                 >
                   {horse.photoUrl && (
@@ -533,9 +533,9 @@ export default function ProDashboardPage() {
                     />
                   )}
                   <h3 className="font-bold text-lg">{horse.name}</h3>
-                  <p className="text-sm text-zinc-300">Edad: {horse.age}</p>
+                  <p className="text-sm text-brand-secondary">Edad: {horse.age}</p>
                   {horse.breed && (
-                    <p className="text-sm text-zinc-300">
+                    <p className="text-sm text-brand-secondary">
                       Raza: {horse.breed}
                     </p>
                   )}
@@ -543,13 +543,13 @@ export default function ProDashboardPage() {
                     <button
                       type="button"
                       onClick={() => setActiveHorseId(horse.id)}
-                      className="text-xs bg-blue-600 text-white px-2 py-1 rounded"
+                      className="text-xs bg-brand-primary text-white px-2 py-1 rounded"
                     >
                       Seleccionar
                     </button>
                     <Link
                       href={`/dashboard/pro/horses/${horse.id}`}
-                      className="text-xs text-blue-400 underline"
+                      className="text-xs text-brand-primary underline"
                     >
                       Abrir ficha del caballo
                     </Link>
@@ -562,10 +562,10 @@ export default function ProDashboardPage() {
       )}
 
       {activeHorse && (
-        <section className="border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70 space-y-4">
+        <section className="border border-brand-border rounded-2xl p-4 bg-brand-background/70 space-y-4">
           <h2 className="text-xl font-semibold">
             Anotacion medica para{" "}
-            <span className="text-blue-400">{activeHorse.name}</span>
+            <span className="text-brand-primary">{activeHorse.name}</span>
           </h2>
 
           <form onSubmit={handleAddNote} className="space-y-3 max-w-2xl">
@@ -573,7 +573,7 @@ export default function ProDashboardPage() {
               placeholder="Describe la observacion, tratamiento, recomendaciones..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="w-full rounded border border-zinc-700 bg-black/70 p-2 text-sm"
+              className="w-full rounded border border-brand-border bg-brand-background/70 p-2 text-sm"
               rows={4}
               required
             />
@@ -587,11 +587,11 @@ export default function ProDashboardPage() {
                 const fileList = Array.from(e.target.files || []);
                 setFiles(fileList);
               }}
-              className="w-full rounded border border-zinc-700 bg-black/70 p-2 text-sm"
+              className="w-full rounded border border-brand-border bg-brand-background/70 p-2 text-sm"
             />
 
             {files.length > 0 && (
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-brand-secondary">
                 Archivos seleccionados: {files.map((f) => f.name).join(", ")}
               </p>
             )}
@@ -605,16 +605,16 @@ export default function ProDashboardPage() {
             <button
               type="submit"
               disabled={savingNote}
-              className="rounded bg-green-600 px-4 py-2 text-sm font-semibold disabled:opacity-60"
+              className="rounded bg-brand-primary text-white px-4 py-2 text-sm font-semibold disabled:opacity-60"
             >
               {savingNote ? "Guardando..." : "Guardar anotacion medica"}
             </button>
           </form>
 
-          <div className="pt-4 border-t border-white/10 space-y-2">
+          <div className="pt-4 border-t border-brand-border space-y-2">
             <h3 className="text-lg font-semibold">Historial medico</h3>
             {notes.length === 0 ? (
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-brand-secondary">
                 Aun no hay anotaciones medicas para este caballo.
               </p>
             ) : (
@@ -622,12 +622,12 @@ export default function ProDashboardPage() {
                 {notes.map((n) => (
                   <li
                     key={n.id}
-                    className="border rounded-lg p-3 bg-black/30"
+                    className="border rounded-lg p-3 bg-brand-background/30"
                   >
                     <p className="font-semibold">
                       {n.createdAt.toDate().toLocaleString()}
                     </p>
-                    <p className="text-zinc-200">{n.note}</p>
+                    <p className="text-brand-text">{n.note}</p>
                     {n.attachments && n.attachments.length > 0 && (
                       <div className="pt-2 space-y-1">
                         {n.attachments.map((a, idx) => (
@@ -636,7 +636,7 @@ export default function ProDashboardPage() {
                             href={a.url}
                             target="_blank"
                             rel="noreferrer"
-                            className="block text-blue-400 underline text-xs"
+                            className="block text-brand-primary underline text-xs"
                           >
                             {a.name}
                           </a>
@@ -653,3 +653,4 @@ export default function ProDashboardPage() {
     </main>
   );
 }
+

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { CenterHeader } from "@/components/center/CenterHeader";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
 import {
   adjustFeedStock,
@@ -111,14 +112,14 @@ function FeedModal({
 }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-950 p-4 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-background/70 p-4">
+      <div className="w-full max-w-lg rounded-2xl border border-brand-border bg-brand-background p-4 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold">{title}</h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded border border-zinc-700 px-2 py-1 text-xs"
+            className="rounded border border-brand-border px-2 py-1 text-xs"
           >
             Cerrar
           </button>
@@ -339,7 +340,7 @@ export default function CenterFeedPage() {
 
   if (loadingGuard) {
     return (
-      <main className="min-h-screen bg-black text-white p-6">
+      <main className="min-h-screen bg-brand-background text-brand-text p-6">
         <p>Cargando permisos del centro...</p>
       </main>
     );
@@ -347,44 +348,51 @@ export default function CenterFeedPage() {
 
   if (!isAllowed) {
     return (
-      <main className="min-h-screen bg-black text-white p-6">
-        <p className="text-red-400">No tienes acceso al dashboard de piensos.</p>
+      <main className="min-h-screen bg-brand-background text-brand-text p-6">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-red-900 bg-red-950/30 p-5">
+          <p className="text-red-300">No tienes acceso al dashboard de piensos.</p>
+          <Link
+            href="/dashboard/center"
+            className="mt-4 inline-flex h-11 items-center rounded-xl border border-brand-border px-4 text-sm font-semibold text-brand-text"
+          >
+            Volver a Centro
+          </Link>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-6 space-y-6">
-      <header className="space-y-2">
-        <Link href="/dashboard/center" className="text-blue-400 underline text-sm">
-          Volver al dashboard de centro
-        </Link>
-        <h1 className="text-3xl font-bold">Piensos</h1>
-        <p className="text-sm text-zinc-300">
-          Centro activo: {activeCenterName ?? "Sin centro activo"}
-        </p>
+    <main className="min-h-screen bg-brand-background text-brand-text">
+      <CenterHeader
+        title="Piensos"
+        subtitle={`Centro activo: ${activeCenterName ?? "Sin centro activo"}`}
+        backHref="/dashboard/center"
+        primaryActionLabel="Anadir pienso"
+        onPrimaryAction={openCreateModal}
+      />
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
         {guardError && (
-          <p className="rounded border border-red-800 bg-red-950/40 p-2 text-sm text-red-300">
+          <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {guardError}
           </p>
         )}
         {error && (
-          <p className="rounded border border-red-800 bg-red-950/40 p-2 text-sm text-red-300">
+          <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {error}
           </p>
         )}
-      </header>
 
       {memberships.length > 1 && (
-        <section className="max-w-lg rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
-          <label htmlFor="center-selector" className="mb-2 block text-sm text-zinc-300">
+        <section className="max-w-xl rounded-2xl border border-brand-border bg-white/60 p-4">
+          <label htmlFor="center-selector" className="mb-2 block text-sm text-brand-secondary">
             Cambiar centro activo
           </label>
           <select
             id="center-selector"
             value={activeCenterId ?? ""}
             onChange={(event) => setActiveCenterId(event.target.value)}
-            className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+            className="h-11 w-full rounded-xl border border-brand-border bg-brand-background px-3 text-sm"
           >
             {memberships.map((membership) => (
               <option key={membership.centerId} value={membership.centerId}>
@@ -396,32 +404,40 @@ export default function CenterFeedPage() {
       )}
 
       {!activeCenterId ? (
-        <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-sm text-zinc-300">
+        <section className="rounded-2xl border border-brand-border bg-white/60 p-4 text-sm text-brand-secondary">
           No tienes centro asignado.
         </section>
       ) : (
         <>
-          <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
-            <div>
-              <p className="text-sm text-zinc-300">Items de pienso: {items.length}</p>
-              <p className="text-sm text-zinc-300">Items en minimo: {lowStockCount}</p>
-            </div>
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold hover:bg-blue-500"
-            >
-              Anadir pienso
-            </button>
+          <section className="grid gap-3 md:grid-cols-3">
+            <article className="rounded-2xl border border-brand-border bg-white/60 p-4">
+              <p className="text-sm text-brand-secondary">Total de piensos</p>
+              <p className="mt-1 text-3xl font-bold">{items.length}</p>
+            </article>
+            <article className="rounded-2xl border border-brand-border bg-white/60 p-4">
+              <p className="text-sm text-brand-secondary">En nivel minimo</p>
+              <p className="mt-1 text-3xl font-bold">{lowStockCount}</p>
+            </article>
+            <article className="rounded-2xl border border-brand-border bg-white/60 p-4">
+              <p className="text-sm text-brand-secondary">Con stock correcto</p>
+              <p className="mt-1 text-3xl font-bold">{Math.max(0, items.length - lowStockCount)}</p>
+            </article>
           </section>
 
           <section className="space-y-3">
             {loadingItems ? (
-              <p className="text-sm text-zinc-400">Cargando piensos...</p>
+              <p className="text-sm text-brand-secondary">Cargando piensos...</p>
             ) : items.length === 0 ? (
-              <p className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-sm text-zinc-300">
-                No hay piensos registrados. Usa el boton Anadir pienso para crear el primero.
-              </p>
+              <div className="rounded-2xl border border-brand-border bg-white/60 p-4 text-sm text-brand-secondary">
+                <p>Aun no hay piensos registrados.</p>
+                <button
+                  type="button"
+                  onClick={openCreateModal}
+                  className="mt-3 inline-flex h-11 items-center rounded-xl bg-brand-primary text-white px-4 text-sm font-semibold hover:bg-brand-primaryHover"
+                >
+                  Crear pienso
+                </button>
+              </div>
             ) : (
               <div className="grid gap-3 lg:grid-cols-2">
                 {items.map((item) => {
@@ -433,7 +449,7 @@ export default function CenterFeedPage() {
                   return (
                     <article
                       key={item.id}
-                      className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-3"
+                      className="rounded-2xl border border-brand-border bg-white/60 p-4 space-y-3"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <h3 className="text-lg font-semibold">
@@ -442,23 +458,23 @@ export default function CenterFeedPage() {
                         <span className="text-sm font-semibold">{progress}%</span>
                       </div>
 
-                      <p className="text-sm text-zinc-300">
+                      <p className="text-sm text-brand-secondary">
                         {item.currentStock} / {item.maxStock} {item.unit}
                       </p>
                       {typeof item.minStock === "number" && (
                         <p
                           className={`text-xs font-semibold ${
-                            lowStock ? "text-red-400" : "text-zinc-400"
+                            lowStock ? "text-red-400" : "text-brand-secondary"
                           }`}
                         >
                           Minimo: {item.minStock} {item.unit}
                         </p>
                       )}
                       {item.supplier && (
-                        <p className="text-xs text-zinc-400">Proveedor: {item.supplier}</p>
+                        <p className="text-xs text-brand-secondary">Proveedor: {item.supplier}</p>
                       )}
 
-                      <div className="h-3 w-full rounded-full bg-zinc-800">
+                      <div className="h-3 w-full rounded-full bg-brand-background">
                         <div
                           className={`h-3 rounded-full transition-all ${
                             lowStock ? "bg-red-500" : "bg-emerald-500"
@@ -478,14 +494,14 @@ export default function CenterFeedPage() {
                         <button
                           type="button"
                           onClick={() => openAdjustModal(item, "consume")}
-                          className="rounded border border-amber-600 px-3 py-1 text-xs text-amber-300"
+                          className="rounded border border-brand-primary px-3 py-1 text-xs text-brand-secondary"
                         >
                           Consumir stock
                         </button>
                         <button
                           type="button"
                           onClick={() => openEditModal(item)}
-                          className="rounded border border-zinc-600 px-3 py-1 text-xs"
+                          className="rounded border border-brand-border px-3 py-1 text-xs"
                         >
                           Editar
                         </button>
@@ -516,7 +532,7 @@ export default function CenterFeedPage() {
               setFormState((prev) => ({ ...prev, name: event.target.value }))
             }
             placeholder="Nombre"
-            className="rounded border border-zinc-700 bg-black/60 p-2 text-sm md:col-span-2"
+            className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm md:col-span-2"
             required
           />
           <select
@@ -524,7 +540,7 @@ export default function CenterFeedPage() {
             onChange={(event) =>
               setFormState((prev) => ({ ...prev, unit: event.target.value as FeedUnit }))
             }
-            className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+            className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
           >
             {unitOptions.map((unit) => (
               <option key={unit} value={unit}>
@@ -541,7 +557,7 @@ export default function CenterFeedPage() {
               setFormState((prev) => ({ ...prev, maxStock: event.target.value }))
             }
             placeholder="maxStock"
-            className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+            className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
             required
           />
           <input
@@ -553,7 +569,7 @@ export default function CenterFeedPage() {
               setFormState((prev) => ({ ...prev, currentStock: event.target.value }))
             }
             placeholder="currentStock"
-            className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+            className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
             required
           />
           <input
@@ -565,7 +581,7 @@ export default function CenterFeedPage() {
               setFormState((prev) => ({ ...prev, minStock: event.target.value }))
             }
             placeholder="minStock (opcional)"
-            className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+            className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
           />
           <input
             type="text"
@@ -574,12 +590,12 @@ export default function CenterFeedPage() {
               setFormState((prev) => ({ ...prev, supplier: event.target.value }))
             }
             placeholder="Proveedor (opcional)"
-            className="rounded border border-zinc-700 bg-black/60 p-2 text-sm md:col-span-2"
+            className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm md:col-span-2"
           />
           <button
             type="submit"
             disabled={saving}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold disabled:opacity-60 md:col-span-2"
+            className="rounded bg-brand-primary text-white px-4 py-2 text-sm font-semibold disabled:opacity-60 md:col-span-2"
           >
             {saving ? "Guardando..." : "Guardar pienso"}
           </button>
@@ -595,7 +611,7 @@ export default function CenterFeedPage() {
               setFormState((prev) => ({ ...prev, name: event.target.value }))
             }
             placeholder="Nombre"
-            className="rounded border border-zinc-700 bg-black/60 p-2 text-sm md:col-span-2"
+            className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm md:col-span-2"
             required
           />
           <select
@@ -603,7 +619,7 @@ export default function CenterFeedPage() {
             onChange={(event) =>
               setFormState((prev) => ({ ...prev, unit: event.target.value as FeedUnit }))
             }
-            className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+            className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
           >
             {unitOptions.map((unit) => (
               <option key={unit} value={unit}>
@@ -620,7 +636,7 @@ export default function CenterFeedPage() {
               setFormState((prev) => ({ ...prev, maxStock: event.target.value }))
             }
             placeholder="maxStock"
-            className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+            className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
             required
           />
           <input
@@ -632,7 +648,7 @@ export default function CenterFeedPage() {
               setFormState((prev) => ({ ...prev, currentStock: event.target.value }))
             }
             placeholder="currentStock"
-            className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+            className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
             required
           />
           <input
@@ -644,7 +660,7 @@ export default function CenterFeedPage() {
               setFormState((prev) => ({ ...prev, minStock: event.target.value }))
             }
             placeholder="minStock (opcional)"
-            className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+            className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
           />
           <input
             type="text"
@@ -653,12 +669,12 @@ export default function CenterFeedPage() {
               setFormState((prev) => ({ ...prev, supplier: event.target.value }))
             }
             placeholder="Proveedor (opcional)"
-            className="rounded border border-zinc-700 bg-black/60 p-2 text-sm md:col-span-2"
+            className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm md:col-span-2"
           />
           <button
             type="submit"
             disabled={saving}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold disabled:opacity-60 md:col-span-2"
+            className="rounded bg-brand-primary text-white px-4 py-2 text-sm font-semibold disabled:opacity-60 md:col-span-2"
           >
             {saving ? "Guardando..." : "Guardar cambios"}
           </button>
@@ -671,7 +687,7 @@ export default function CenterFeedPage() {
         onClose={closeAllModals}
       >
         <form onSubmit={handleAdjustStock} className="space-y-3">
-          <p className="text-sm text-zinc-300">
+          <p className="text-sm text-brand-secondary">
             {stockModal.item?.name} ({stockModal.item?.unit})
           </p>
           <input
@@ -683,18 +699,20 @@ export default function CenterFeedPage() {
               setStockModal((prev) => ({ ...prev, amount: event.target.value }))
             }
             placeholder="Cantidad"
-            className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+            className="w-full rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
             required
           />
           <button
             type="submit"
             disabled={saving}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold disabled:opacity-60"
+            className="rounded bg-brand-primary text-white px-4 py-2 text-sm font-semibold disabled:opacity-60"
           >
             {saving ? "Guardando..." : "Confirmar"}
           </button>
         </form>
       </FeedModal>
+      </div>
     </main>
   );
 }
+

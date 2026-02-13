@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { CenterHeader } from "@/components/center/CenterHeader";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
 import {
   CenterTask,
@@ -45,14 +46,14 @@ const priorityLabel: Record<TaskPriority, string> = {
 };
 
 const priorityStyle: Record<TaskPriority, string> = {
-  LOW: "bg-zinc-800 text-zinc-200",
-  MEDIUM: "bg-blue-900/70 text-blue-200",
+  LOW: "bg-brand-background text-brand-text",
+  MEDIUM: "bg-brand-primary/15 text-brand-primary",
   HIGH: "bg-red-900/70 text-red-200",
 };
 
 const statusStyle: Record<TaskStatus, string> = {
-  TODO: "bg-amber-900/70 text-amber-200",
-  IN_PROGRESS: "bg-blue-900/70 text-blue-200",
+  TODO: "bg-brand-primary/70 text-brand-secondary",
+  IN_PROGRESS: "bg-brand-primary/15 text-brand-primary",
   DONE: "bg-emerald-900/70 text-emerald-200",
 };
 
@@ -213,7 +214,7 @@ export default function CenterTasksPage() {
 
   if (guardLoading) {
     return (
-      <main className="min-h-screen bg-black text-white p-6">
+      <main className="min-h-screen bg-brand-background text-brand-text p-6">
         <p>Cargando permisos del centro...</p>
       </main>
     );
@@ -221,44 +222,56 @@ export default function CenterTasksPage() {
 
   if (!isAllowed) {
     return (
-      <main className="min-h-screen bg-black text-white p-6">
-        <p className="text-red-400">No tienes acceso a Tareas.</p>
+      <main className="min-h-screen bg-brand-background text-brand-text p-6">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-red-900 bg-red-950/30 p-5">
+          <p className="text-red-300">No tienes acceso a Tareas.</p>
+          <Link
+            href="/dashboard/center"
+            className="mt-4 inline-flex h-11 items-center rounded-xl border border-brand-border px-4 text-sm font-semibold text-brand-text"
+          >
+            Volver a Centro
+          </Link>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-6 space-y-6">
-      <header className="space-y-2">
-        <Link href="/dashboard/center" className="text-blue-400 underline text-sm">
-          Volver al dashboard de centro
-        </Link>
-        <h1 className="text-3xl font-bold">Tareas</h1>
-        <p className="text-sm text-zinc-300">
-          Centro activo: {activeCenterName ?? "Sin centro activo"}
-        </p>
+    <main className="min-h-screen bg-brand-background text-brand-text">
+      <CenterHeader
+        title="Tareas"
+        subtitle={`Centro activo: ${activeCenterName ?? "Sin centro activo"}`}
+        backHref="/dashboard/center"
+        primaryActionLabel="Nueva tarea"
+        onPrimaryAction={() => {
+          setTab("TODO");
+          setEditingTaskId(null);
+          setForm((prev) => ({ ...formInit, status: "TODO", dueDate: prev.dueDate }));
+          document.getElementById("task-title")?.focus();
+        }}
+      />
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
         {guardError && (
-          <p className="rounded border border-red-800 bg-red-950/40 p-2 text-sm text-red-300">
+          <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {guardError}
           </p>
         )}
         {error && (
-          <p className="rounded border border-red-800 bg-red-950/40 p-2 text-sm text-red-300">
+          <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {error}
           </p>
         )}
-      </header>
 
       {memberships.length > 1 && (
-        <section className="max-w-lg rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
-          <label htmlFor="center-selector" className="mb-2 block text-sm text-zinc-300">
+        <section className="max-w-xl rounded-2xl border border-brand-border bg-white/60 p-4">
+          <label htmlFor="center-selector" className="mb-2 block text-sm text-brand-secondary">
             Cambiar centro activo
           </label>
           <select
             id="center-selector"
             value={activeCenterId ?? ""}
             onChange={(event) => setActiveCenterId(event.target.value)}
-            className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+            className="h-11 w-full rounded-xl border border-brand-border bg-brand-background px-3 text-sm"
           >
             {memberships.map((membership) => (
               <option key={membership.centerId} value={membership.centerId}>
@@ -270,20 +283,20 @@ export default function CenterTasksPage() {
       )}
 
       {!activeCenterId ? (
-        <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-sm text-zinc-300">
+        <section className="rounded-2xl border border-brand-border bg-white/60 p-4 text-sm text-brand-secondary">
           No tienes centro asignado.
         </section>
       ) : (
         <>
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-4">
-            <div className="inline-flex rounded-lg border border-zinc-700 p-1">
+          <section className="rounded-2xl border border-brand-border bg-white/60 p-4 space-y-4">
+            <div className="inline-flex rounded-lg border border-brand-border p-1">
               {(Object.keys(tabLabel) as TaskTab[]).map((status) => (
                 <button
                   key={status}
                   type="button"
                   onClick={() => setTab(status)}
                   className={`rounded px-3 py-1 text-sm ${
-                    tab === status ? "bg-zinc-200 text-zinc-900" : "text-zinc-300"
+                    tab === status ? "bg-brand-border text-brand-text" : "text-brand-secondary"
                   }`}
                 >
                   {tabLabel[status]}
@@ -294,12 +307,13 @@ export default function CenterTasksPage() {
             <form onSubmit={onCreateOrUpdate} className="grid gap-2 md:grid-cols-2">
               <input
                 type="text"
+                id="task-title"
                 value={form.title}
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, title: event.target.value }))
                 }
                 placeholder="Titulo"
-                className="rounded border border-zinc-700 bg-black/60 p-2 text-sm md:col-span-2"
+                className="h-11 rounded-xl border border-brand-border bg-brand-background px-3 text-sm md:col-span-2"
                 required
               />
               <textarea
@@ -309,7 +323,7 @@ export default function CenterTasksPage() {
                 }
                 placeholder="Descripcion (opcional)"
                 rows={3}
-                className="rounded border border-zinc-700 bg-black/60 p-2 text-sm md:col-span-2"
+                className="rounded-xl border border-brand-border bg-brand-background p-2 text-sm md:col-span-2"
               />
               <input
                 type="date"
@@ -317,7 +331,7 @@ export default function CenterTasksPage() {
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, dueDate: event.target.value }))
                 }
-                className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+                className="h-11 rounded-xl border border-brand-border bg-brand-background px-3 text-sm"
               />
               <select
                 value={form.priority}
@@ -327,7 +341,7 @@ export default function CenterTasksPage() {
                     priority: event.target.value as TaskPriority,
                   }))
                 }
-                className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+                className="h-11 rounded-xl border border-brand-border bg-brand-background px-3 text-sm"
               >
                 <option value="LOW">Prioridad baja</option>
                 <option value="MEDIUM">Prioridad media</option>
@@ -341,7 +355,7 @@ export default function CenterTasksPage() {
                     status: event.target.value as TaskStatus,
                   }))
                 }
-                className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+                className="h-11 rounded-xl border border-brand-border bg-brand-background px-3 text-sm"
               >
                 <option value="TODO">Pendiente</option>
                 <option value="IN_PROGRESS">En curso</option>
@@ -350,7 +364,7 @@ export default function CenterTasksPage() {
               <div className="flex gap-2 md:items-center">
                 <button
                   disabled={saving}
-                  className="rounded bg-blue-600 px-3 py-2 text-sm font-semibold disabled:opacity-60"
+                  className="h-11 rounded-xl bg-brand-primary text-white px-4 text-sm font-semibold disabled:opacity-60"
                 >
                   {editingTaskId ? "Guardar cambios" : "Crear tarea"}
                 </button>
@@ -358,7 +372,7 @@ export default function CenterTasksPage() {
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="rounded border border-zinc-700 px-3 py-2 text-sm"
+                    className="h-11 rounded-xl border border-brand-border px-4 text-sm"
                   >
                     Cancelar edicion
                   </button>
@@ -367,12 +381,12 @@ export default function CenterTasksPage() {
             </form>
           </section>
 
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-3">
+          <section className="rounded-2xl border border-brand-border bg-white/60 p-4 space-y-3">
             <h2 className="text-lg font-semibold">{tabLabel[tab]}</h2>
             {loadingTasks ? (
-              <p className="text-sm text-zinc-400">Cargando tareas...</p>
+              <p className="text-sm text-brand-secondary">Cargando tareas...</p>
             ) : filteredTasks.length === 0 ? (
-              <p className="text-sm text-zinc-400">No hay tareas en este estado.</p>
+              <p className="text-sm text-brand-secondary">No hay tareas en este estado.</p>
             ) : (
               <div className="space-y-2">
                 {filteredTasks.map((task) => {
@@ -383,14 +397,14 @@ export default function CenterTasksPage() {
                       className={`rounded-xl border p-3 ${
                         overdue
                           ? "border-red-700 bg-red-950/20"
-                          : "border-zinc-800 bg-black/40"
+                          : "border-brand-border bg-brand-background/40"
                       }`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="space-y-1">
                           <p className="font-semibold">{task.title}</p>
                           {task.description && (
-                            <p className="text-sm text-zinc-300">{task.description}</p>
+                            <p className="text-sm text-brand-secondary">{task.description}</p>
                           )}
                         </div>
                         <div className="flex flex-wrap gap-1">
@@ -416,7 +430,7 @@ export default function CenterTasksPage() {
                         </div>
                       </div>
 
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-400">
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-brand-secondary">
                         <span>
                           Vence: {task.dueDate ? task.dueDate.toDate().toLocaleDateString("es-ES") : "-"}
                         </span>
@@ -432,7 +446,7 @@ export default function CenterTasksPage() {
                           onChange={(event) =>
                             void onStatusChange(task.id, event.target.value as TaskStatus)
                           }
-                          className="rounded border border-zinc-700 bg-black/60 p-1.5 text-xs"
+                          className="rounded-xl border border-brand-border bg-brand-background px-2 py-1.5 text-xs"
                         >
                           <option value="TODO">Pendiente</option>
                           <option value="IN_PROGRESS">En curso</option>
@@ -441,7 +455,7 @@ export default function CenterTasksPage() {
                         <button
                           type="button"
                           onClick={() => onEditTask(task)}
-                          className="rounded border border-zinc-700 px-2 py-1 text-xs"
+                          className="rounded border border-brand-border px-2 py-1 text-xs"
                         >
                           Editar
                         </button>
@@ -462,6 +476,8 @@ export default function CenterTasksPage() {
           </section>
         </>
       )}
+      </div>
     </main>
   );
 }
+

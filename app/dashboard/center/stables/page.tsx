@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { CenterHeader } from "@/components/center/CenterHeader";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
 import {
   createHorseStay,
@@ -263,7 +264,7 @@ export default function CenterStablesPage() {
 
   if (guardLoading) {
     return (
-      <main className="min-h-screen bg-black text-white p-6">
+      <main className="min-h-screen bg-brand-background text-brand-text p-6">
         <p>Cargando permisos del centro...</p>
       </main>
     );
@@ -271,44 +272,51 @@ export default function CenterStablesPage() {
 
   if (!isAllowed) {
     return (
-      <main className="min-h-screen bg-black text-white p-6">
-        <p className="text-red-400">No tienes acceso al modulo de cuadras.</p>
+      <main className="min-h-screen bg-brand-background text-brand-text p-6">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-red-900 bg-red-950/30 p-5">
+          <p className="text-red-300">No tienes acceso al modulo de cuadras.</p>
+          <Link
+            href="/dashboard/center"
+            className="mt-4 inline-flex h-11 items-center rounded-xl border border-brand-border px-4 text-sm font-semibold text-brand-text"
+          >
+            Volver a Centro
+          </Link>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-6 space-y-6">
-      <header className="space-y-2">
-        <Link href="/dashboard/center" className="text-blue-400 underline text-sm">
-          Volver al dashboard de centro
-        </Link>
-        <h1 className="text-3xl font-bold">Cuadras</h1>
-        <p className="text-sm text-zinc-300">
-          Centro activo: {activeCenterName ?? "Sin centro activo"}
-        </p>
+    <main className="min-h-screen bg-brand-background text-brand-text">
+      <CenterHeader
+        title="Cuadras"
+        subtitle={`Centro activo: ${activeCenterName ?? "Sin centro activo"}`}
+        backHref="/dashboard/center"
+        primaryActionLabel="Editar capacidad"
+        onPrimaryAction={() => setCapacityModalOpen(true)}
+      />
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
         {guardError && (
-          <p className="rounded border border-red-800 bg-red-950/40 p-2 text-sm text-red-300">
+          <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {guardError}
           </p>
         )}
         {error && (
-          <p className="rounded border border-red-800 bg-red-950/40 p-2 text-sm text-red-300">
+          <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {error}
           </p>
         )}
-      </header>
 
       {memberships.length > 1 && (
-        <section className="max-w-lg rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
-          <label htmlFor="center-selector" className="mb-2 block text-sm text-zinc-300">
+        <section className="max-w-xl rounded-2xl border border-brand-border bg-white/60 p-4">
+          <label htmlFor="center-selector" className="mb-2 block text-sm text-brand-secondary">
             Cambiar centro activo
           </label>
           <select
             id="center-selector"
             value={activeCenterId ?? ""}
             onChange={(event) => setActiveCenterId(event.target.value)}
-            className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+            className="h-11 w-full rounded-xl border border-brand-border bg-brand-background px-3 text-sm"
           >
             {memberships.map((membership) => (
               <option key={membership.centerId} value={membership.centerId}>
@@ -320,15 +328,15 @@ export default function CenterStablesPage() {
       )}
 
       {!activeCenterId ? (
-        <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-sm text-zinc-300">
+        <section className="rounded-2xl border border-brand-border bg-white/60 p-4 text-sm text-brand-secondary">
           No tienes centro asignado.
         </section>
       ) : (
         <>
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-4">
+          <section className="rounded-2xl border border-brand-border bg-white/60 p-4 space-y-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs uppercase text-zinc-400">Ocupacion</p>
+                <p className="text-xs uppercase text-brand-secondary">Ocupacion</p>
                 <p className="text-2xl font-semibold">
                   {occupied} / {total}
                 </p>
@@ -336,12 +344,12 @@ export default function CenterStablesPage() {
               <button
                 type="button"
                 onClick={() => setCapacityModalOpen(true)}
-                className="rounded border border-zinc-700 px-3 py-2 text-sm"
+                className="inline-flex h-11 items-center rounded-xl border border-brand-border px-4 text-sm font-semibold"
               >
                 Editar capacidad
               </button>
             </div>
-            <div className="h-3 w-full rounded-full bg-zinc-800">
+            <div className="h-3 w-full rounded-full bg-brand-background">
               <div
                 className="h-3 rounded-full bg-emerald-500"
                 style={{ width: `${occupancyRatio}%` }}
@@ -349,7 +357,7 @@ export default function CenterStablesPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-3">
+          <section id="nueva-estancia" className="rounded-2xl border border-brand-border bg-white/60 p-4 space-y-3">
             <h2 className="text-lg font-semibold">Nueva estancia activa</h2>
             <form onSubmit={submitHorseStay} className="grid gap-2 md:grid-cols-3">
               <input
@@ -359,7 +367,7 @@ export default function CenterStablesPage() {
                   setStayForm((prev) => ({ ...prev, horseId: event.target.value }))
                 }
                 placeholder="horseId"
-                className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+                className="h-11 rounded-xl border border-brand-border bg-brand-background px-3 text-sm"
                 required
               />
               <input
@@ -369,7 +377,7 @@ export default function CenterStablesPage() {
                   setStayForm((prev) => ({ ...prev, riderUid: event.target.value }))
                 }
                 placeholder="riderUid"
-                className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+                className="h-11 rounded-xl border border-brand-border bg-brand-background px-3 text-sm"
                 required
               />
               <input
@@ -382,31 +390,31 @@ export default function CenterStablesPage() {
                   }))
                 }
                 placeholder="assignedStableId (opcional)"
-                className="rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+                className="h-11 rounded-xl border border-brand-border bg-brand-background px-3 text-sm"
               />
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold disabled:opacity-60 md:col-span-3"
+                className="h-11 rounded-xl bg-brand-primary text-white px-4 text-sm font-semibold disabled:opacity-60 md:col-span-3"
               >
                 {saving ? "Guardando..." : "Crear estancia activa"}
               </button>
             </form>
           </section>
 
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-3">
+          <section className="rounded-2xl border border-brand-border bg-white/60 p-4 space-y-3">
             <h2 className="text-lg font-semibold">Ocupacion activa</h2>
             {loadingStays || loadingDetails ? (
-              <p className="text-sm text-zinc-400">Cargando ocupacion...</p>
+              <p className="text-sm text-brand-secondary">Cargando ocupacion...</p>
             ) : staysView.length === 0 ? (
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-brand-secondary">
                 No hay estancias activas en este momento.
               </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-left text-zinc-400 border-b border-zinc-800">
+                    <tr className="text-left text-brand-secondary border-b border-brand-border">
                       <th className="py-2 pr-4">Caballo</th>
                       <th className="py-2 pr-4">Cliente</th>
                       <th className="py-2 pr-4">Fecha entrada</th>
@@ -416,7 +424,7 @@ export default function CenterStablesPage() {
                   </thead>
                   <tbody>
                     {staysView.map((row) => (
-                      <tr key={row.stay.id} className="border-b border-zinc-900">
+                      <tr key={row.stay.id} className="border-b border-brand-border">
                         <td className="py-2 pr-4">{row.horseName}</td>
                         <td className="py-2 pr-4">{row.clientLabel}</td>
                         <td className="py-2 pr-4">
@@ -426,13 +434,13 @@ export default function CenterStablesPage() {
                         </td>
                         <td className="py-2 pr-4">
                           {row.services.length === 0 ? (
-                            <span className="text-zinc-500">Sin servicios</span>
+                            <span className="text-brand-secondary">Sin servicios</span>
                           ) : (
                             <div className="flex flex-wrap gap-1">
                               {row.services.map((service) => (
                                 <span
                                   key={`${row.stay.id}-${service}`}
-                                  className="rounded-full bg-zinc-800 px-2 py-1 text-xs"
+                                  className="rounded-full bg-brand-background px-2 py-1 text-xs"
                                 >
                                   {service}
                                 </span>
@@ -441,7 +449,7 @@ export default function CenterStablesPage() {
                           )}
                         </td>
                         <td className="py-2 pr-4">
-                          <span className="rounded bg-amber-900/60 px-2 py-1 text-xs text-amber-200">
+                          <span className="rounded bg-brand-primary/60 px-2 py-1 text-xs text-brand-secondary">
                             {row.paymentStatus}
                           </span>
                         </td>
@@ -456,14 +464,14 @@ export default function CenterStablesPage() {
       )}
 
       {capacityModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-4 space-y-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-background/70 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-brand-border bg-brand-background p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Editar capacidad</h3>
               <button
                 type="button"
                 onClick={() => setCapacityModalOpen(false)}
-                className="rounded border border-zinc-700 px-2 py-1 text-xs"
+                className="rounded border border-brand-border px-2 py-1 text-xs"
               >
                 Cerrar
               </button>
@@ -475,13 +483,13 @@ export default function CenterStablesPage() {
                 step="1"
                 value={capacityDraft}
                 onChange={(event) => setCapacityDraft(event.target.value)}
-                className="w-full rounded border border-zinc-700 bg-black/60 p-2 text-sm"
+                className="w-full rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
                 required
               />
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold disabled:opacity-60"
+                className="rounded bg-brand-primary text-white px-4 py-2 text-sm font-semibold disabled:opacity-60"
               >
                 {saving ? "Guardando..." : "Guardar capacidad"}
               </button>
@@ -489,6 +497,7 @@ export default function CenterStablesPage() {
           </div>
         </div>
       )}
+      </div>
     </main>
   );
 }

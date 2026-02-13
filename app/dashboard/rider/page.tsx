@@ -227,7 +227,7 @@ const RiderDashboardPage: React.FC = () => {
   // 6️⃣ Render
   if (loadingInitial) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-black text-white">
+      <main className="min-h-screen flex items-center justify-center bg-brand-background text-brand-text">
         <p>Comprobando sesión...</p>
       </main>
     );
@@ -235,24 +235,24 @@ const RiderDashboardPage: React.FC = () => {
 
   if (!userId) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-black text-white">
+      <main className="min-h-screen flex items-center justify-center bg-brand-background text-brand-text">
         <p>No hay sesión activa.</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-6 space-y-8">
+    <main className="min-h-screen bg-brand-background text-brand-text p-6 space-y-8">
       {/* Información del jinete */}
-      <section className="border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70">
+      <section className="border border-brand-border rounded-2xl p-4 bg-brand-background/70">
         <h1 className="text-2xl font-bold mb-2">Hola, {userInfo?.name}</h1>
-        <p className="text-sm text-zinc-300">
+        <p className="text-sm text-brand-secondary">
           Sesión iniciada como <span className="font-mono">{userInfo?.email}</span>
         </p>
       </section>
 
       {/* Buscador de centros */}
-      <section className="border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70 space-y-4">
+      <section className="border border-brand-border rounded-2xl p-4 bg-brand-background/70 space-y-4">
         <h2 className="text-xl font-semibold">Buscar centro hípico</h2>
 
         <input
@@ -260,7 +260,7 @@ const RiderDashboardPage: React.FC = () => {
           placeholder="Busca un centro por nombre..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full rounded border border-zinc-700 bg-black/70 p-2 text-sm"
+          className="w-full rounded border border-brand-border bg-brand-background/70 p-2 text-sm"
         />
 
         <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3 max-h-64 overflow-y-auto">
@@ -269,17 +269,17 @@ const RiderDashboardPage: React.FC = () => {
               key={center.id}
               type="button"
               onClick={() => setActiveCenterId(center.id)}
-              className={`text-left border rounded-lg px-3 py-2 text-sm bg-black/60 hover:border-blue-500 transition ${
+              className={`text-left border rounded-lg px-3 py-2 text-sm bg-brand-background/60 hover:border-brand-primary transition ${
                 activeCenterId === center.id
-                  ? "border-blue-500"
-                  : "border-zinc-700"
+                  ? "border-brand-primary"
+                  : "border-brand-border"
               }`}
             >
               {center.name}
             </button>
           ))}
           {filteredCenters.length === 0 && (
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-brand-secondary">
               No se han encontrado centros con ese nombre.
             </p>
           )}
@@ -287,10 +287,10 @@ const RiderDashboardPage: React.FC = () => {
       </section>
 
       {/* Tus centros (donde ya tienes caballos) */}
-      <section className="border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70 space-y-3">
+      <section className="border border-brand-border rounded-2xl p-4 bg-brand-background/70 space-y-3">
         <h2 className="text-xl font-semibold">Tus centros</h2>
         {riderCenters.length === 0 ? (
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-brand-secondary">
             Aún no tienes ningún caballo registrado.  
             Busca un centro arriba, selecciónalo y añade tu primer caballo.
           </p>
@@ -303,8 +303,8 @@ const RiderDashboardPage: React.FC = () => {
                 onClick={() => setActiveCenterId(center.id)}
                 className={`px-3 py-1 rounded-full text-sm border transition ${
                   activeCenterId === center.id
-                    ? "bg-blue-600 border-blue-400"
-                    : "bg-black/60 border-zinc-700 hover:border-blue-500"
+                    ? "bg-brand-primary border-brand-primary text-white"
+                    : "bg-brand-background/60 border-brand-border hover:border-brand-primary"
                 }`}
               >
                 {center.name}
@@ -320,14 +320,14 @@ const RiderDashboardPage: React.FC = () => {
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-xl font-semibold">
               Caballos en{" "}
-              <span className="text-blue-400">
+              <span className="text-brand-primary">
                 {centersById[activeCenterId]?.name ?? "Centro seleccionado"}
               </span>
             </h2>
           </div>
 
           {/* Formulario para añadir caballo */}
-          <section className="max-w-xl border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70 space-y-3">
+          <section className="max-w-xl border border-brand-border rounded-2xl p-4 bg-brand-background/70 space-y-3">
             <h3 className="text-lg font-semibold">Añadir caballo</h3>
             <form onSubmit={handleSubmitHorse} className="space-y-3">
               <input
@@ -335,7 +335,7 @@ const RiderDashboardPage: React.FC = () => {
                 placeholder="Nombre"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full rounded border border-zinc-700 bg-black/70 p-2 text-sm"
+                className="w-full rounded border border-brand-border bg-brand-background/70 p-2 text-sm"
                 required
               />
 
@@ -344,7 +344,7 @@ const RiderDashboardPage: React.FC = () => {
                 placeholder="Edad"
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
-                className="w-full rounded border border-zinc-700 bg-black/70 p-2 text-sm"
+                className="w-full rounded border border-brand-border bg-brand-background/70 p-2 text-sm"
                 required
               />
 
@@ -353,7 +353,7 @@ const RiderDashboardPage: React.FC = () => {
                 placeholder="Raza (opcional)"
                 value={breed}
                 onChange={(e) => setBreed(e.target.value)}
-                className="w-full rounded border border-zinc-700 bg-black/70 p-2 text-sm"
+                className="w-full rounded border border-brand-border bg-brand-background/70 p-2 text-sm"
               />
 
               <input
@@ -364,7 +364,7 @@ const RiderDashboardPage: React.FC = () => {
                   const file = e.target.files?.[0] || null;
                   setPhotoFile(file);
                 }}
-                className="w-full rounded border border-zinc-700 bg-black/70 p-2 text-sm"
+                className="w-full rounded border border-brand-border bg-brand-background/70 p-2 text-sm"
               />
 
               {error && (
@@ -376,7 +376,7 @@ const RiderDashboardPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={loadingHorse}
-                className="w-full rounded bg-blue-600 py-2 text-sm font-semibold disabled:opacity-60"
+                className="w-full rounded bg-brand-primary text-white py-2 text-sm font-semibold disabled:opacity-60"
               >
                 {loadingHorse ? "Guardando..." : "Guardar caballo"}
               </button>
@@ -387,7 +387,7 @@ const RiderDashboardPage: React.FC = () => {
           <section>
             <h3 className="text-lg font-semibold mb-3">Tus caballos aquí</h3>
             {horsesInActiveCenter.length === 0 ? (
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-brand-secondary">
                 Aún no tienes caballos registrados en este centro.
               </p>
             ) : (
@@ -396,7 +396,7 @@ const RiderDashboardPage: React.FC = () => {
                     <Link
                       key={horse.id}
                       href={`/dashboard/horses/${horse.id}`}
-                      className="block border border-zinc-800 rounded-2xl p-4 bg-zinc-950/70 space-y-2 hover:bg-zinc-900/60 transition cursor-pointer"
+                      className="block border border-brand-border rounded-2xl p-4 bg-brand-background/70 space-y-2 hover:bg-white/60 transition cursor-pointer"
                    > 
                     {horse.photoUrl && (
                       <img
@@ -406,11 +406,11 @@ const RiderDashboardPage: React.FC = () => {
                       />
                     )}
                     <h4 className="font-bold text-lg">{horse.name}</h4>
-                    <p className="text-sm text-zinc-300">
+                    <p className="text-sm text-brand-secondary">
                       Edad: {horse.age}
                     </p>
                     {horse.breed && (
-                      <p className="text-sm text-zinc-300">
+                      <p className="text-sm text-brand-secondary">
                         Raza: {horse.breed}
                       </p>
                     )}
@@ -426,3 +426,4 @@ const RiderDashboardPage: React.FC = () => {
 };
 
 export default RiderDashboardPage;
+

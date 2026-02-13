@@ -229,7 +229,7 @@ export default function ProHorseDetailPage() {
     return (
       <main className="p-6 space-y-4">
         <p className="text-red-400">{error || "Caballo no encontrado"}</p>
-        <Link href="/dashboard/pro" className="text-blue-400 underline text-sm">
+        <Link href="/dashboard/pro" className="text-brand-primary underline text-sm">
           Volver a dashboard profesional
         </Link>
       </main>
@@ -242,11 +242,11 @@ export default function ProHorseDetailPage() {
 
   return (
     <main className="p-6 space-y-6">
-      <Link href="/dashboard/pro" className="text-blue-400 underline text-sm">
+      <Link href="/dashboard/pro" className="text-brand-primary underline text-sm">
         Volver a dashboard profesional
       </Link>
 
-      <section className="max-w-4xl border rounded-xl p-4 bg-black/20 space-y-6">
+      <section className="max-w-4xl border rounded-xl p-4 bg-brand-background/20 space-y-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold">{horse.name}</h1>
           {createdDate && (
@@ -273,7 +273,7 @@ export default function ProHorseDetailPage() {
           )}
         </div>
 
-        <div className="pt-4 border-t border-white/10">
+        <div className="pt-4 border-t border-brand-border">
           <h2 className="text-xl font-semibold mb-2">Editar datos basicos</h2>
           <form onSubmit={handleEdit} className="space-y-3 max-w-md">
             <input
@@ -303,14 +303,14 @@ export default function ProHorseDetailPage() {
             <button
               type="submit"
               disabled={savingEdit}
-              className="bg-blue-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
+              className="bg-brand-primary text-white px-4 py-2 rounded text-sm disabled:opacity-50"
             >
               {savingEdit ? "Guardando..." : "Guardar cambios"}
             </button>
           </form>
         </div>
 
-        <div className="pt-4 border-t border-white/10 space-y-4">
+        <div className="pt-4 border-t border-brand-border space-y-4">
           <h2 className="text-xl font-semibold">Anotaciones medicas</h2>
 
           <form onSubmit={handleAddNote} className="space-y-3 max-w-2xl">
@@ -344,7 +344,7 @@ export default function ProHorseDetailPage() {
             <button
               type="submit"
               disabled={savingNote}
-              className="bg-green-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
+              className="bg-brand-primary text-white px-4 py-2 rounded text-sm disabled:opacity-50"
             >
               {savingNote ? "Guardando..." : "Guardar anotacion"}
             </button>
@@ -358,7 +358,7 @@ export default function ProHorseDetailPage() {
             ) : (
               <ul className="space-y-2 text-sm">
                 {notes.map((n) => (
-                  <li key={n.id} className="border rounded-lg p-3 bg-black/30">
+                  <li key={n.id} className="border rounded-lg p-3 bg-brand-background/30">
                     <p className="font-semibold">
                       {n.createdAt.toDate().toLocaleString()}
                     </p>
@@ -371,7 +371,7 @@ export default function ProHorseDetailPage() {
                             href={a.url}
                             target="_blank"
                             rel="noreferrer"
-                            className="block text-blue-400 underline text-xs"
+                            className="block text-brand-primary underline text-xs"
                           >
                             {a.name}
                           </a>
