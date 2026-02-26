@@ -548,7 +548,7 @@ export default function CenterBillingPage() {
     return (
       <main className="min-h-screen bg-brand-background text-brand-text p-6">
         <div className="mx-auto max-w-3xl rounded-2xl border border-red-900 bg-red-950/30 p-5">
-          <p className="text-red-300">No tienes acceso a Facturacion.</p>
+          <p className="text-red-300">No tienes acceso a Facturación.</p>
           <Link
             href="/dashboard/center"
             className="mt-4 inline-flex h-11 items-center rounded-xl border border-brand-border px-4 text-sm font-semibold text-brand-text"
@@ -563,7 +563,7 @@ export default function CenterBillingPage() {
   return (
     <main className="min-h-screen bg-brand-background text-brand-text">
       <CenterHeader
-        title="Facturacion"
+        title="Facturación"
         subtitle={`Centro activo: ${activeCenterName ?? "Sin centro activo"}`}
         backHref="/dashboard/center"
         primaryActionLabel="Generar cargos del mes"

@@ -96,34 +96,51 @@ export default function CenterDashboardPage() {
 
   return (
     <main className="min-h-screen bg-brand-background text-brand-text">
-      <header className="border-b border-brand-border/70 bg-white/40">
-        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-3 px-4 py-4 sm:px-6 md:grid-cols-[auto_1fr_auto] md:gap-4 md:py-5">
-          <div className="flex items-center justify-center md:justify-start">
+      <header className="border-b border-brand-border/80 bg-white/35 backdrop-blur-sm">
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-[9rem_1fr_9rem] items-center gap-2 px-4 py-2 sm:grid-cols-[10rem_1fr_10rem] sm:px-6 sm:py-2.5 md:grid-cols-[11rem_1fr_11rem] md:gap-4 md:py-3">
+          <div className="flex items-center">
             <Image
               src="/logo-equidata.png"
               alt="Equidata"
               width={180}
               height={180}
               priority
-              className="h-auto w-28 opacity-95 sm:w-32 md:w-36"
+              className="h-auto w-36 opacity-95 sm:w-40 md:w-44"
             />
           </div>
 
-          <div className="min-w-0 text-center md:px-4">
+          <div className="min-w-0 text-center">
             <h1
-              className={`${cormorant.className} truncate text-[28px] font-medium tracking-[0.08em] text-brand-text sm:text-[32px] md:text-[36px]`}
+              className={`${cormorant.className} text-center text-[18px] font-medium leading-tight tracking-[0.04em] text-brand-text sm:text-[20px] md:text-[26px]`}
             >
               {activeCenterName ?? "Centro"}
             </h1>
-            <p className="mt-1 text-sm text-brand-secondary">Panel del centro</p>
+            <p className="text-center text-[10px] leading-4 text-brand-secondary sm:text-[11px] md:text-sm">
+              Panel del centro
+            </p>
           </div>
 
-          <div className="flex justify-center md:justify-end">
+          <div className="flex items-center justify-end self-center">
             <button
               onClick={handleLogout}
-              className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-xl bg-brand-primary px-4 text-sm font-semibold text-white transition hover:bg-brand-primaryHover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-brand-background active:scale-[0.99]"
+              aria-label="Cerrar sesión"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-brand-border bg-white/80 text-brand-primary transition hover:border-brand-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-brand-background active:scale-[0.98] md:h-10 md:w-auto md:whitespace-nowrap md:rounded-xl md:border-transparent md:bg-brand-primary md:px-4 md:text-sm md:font-semibold md:text-white md:hover:bg-brand-primaryHover"
             >
-              Cerrar sesión
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-4 w-4 md:mr-2"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <path d="M16 17l5-5-5-5" />
+                <path d="M21 12H9" />
+              </svg>
+              <span className="hidden md:inline">Cerrar sesión</span>
             </button>
           </div>
         </div>
