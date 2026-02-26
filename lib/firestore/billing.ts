@@ -1,9 +1,11 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
+  orderBy,
   query,
   serverTimestamp,
   Timestamp,
@@ -62,11 +64,39 @@ export type PaymentDoc = {
   createdAt?: Timestamp;
 };
 
+export type LedgerEntryType = "CHARGE" | "PAYMENT" | "EXPENSE";
+
+export type LedgerEntryDoc = {
+  id: string;
+  periodKey: string;
+  type: LedgerEntryType;
+  riderUid?: string | null;
+  refId: string;
+  summary: string;
+  amountSigned: number; // pagos +, gastos -, cargos 0
+  createdAt?: Timestamp;
+};
+
+export type ExpenseDoc = {
+  id: string;
+  periodKey: string;
+  category: string;
+  description: string;
+  amount: number;
+  date?: Timestamp;
+  method?: string | null;
+  notes?: string | null;
+  createdAt?: Timestamp;
+  ledgerEntryId?: string | null;
+};
+
 export type MonthlySummaryRow = {
   periodKey: string;
   periodLabel: string;
   billed: number;
   collected: number;
+  expenses: number;
+  net: number;
   pending: number;
   overdue: number;
   clientCount: number;
@@ -111,6 +141,26 @@ export type AddOneOffChargeInput = {
   dueDate?: Date;
 };
 
+export type CreateExpenseInput = {
+  period: BillingPeriod;
+  category: string;
+  description: string;
+  amount: number;
+  date?: Date;
+  method?: string;
+  notes?: string;
+};
+
+export type UpdateExpenseInput = {
+  period?: BillingPeriod;
+  category?: string;
+  description?: string;
+  amount?: number;
+  date?: Date;
+  method?: string | null;
+  notes?: string | null;
+};
+
 const chargesCollection = (centerId: string) =>
   collection(db, "centers", centerId, "charges");
 
@@ -122,6 +172,12 @@ const horseStaysCollection = (centerId: string) =>
 
 const billingServicesCollection = (centerId: string) =>
   collection(db, "centers", centerId, "billingServices");
+
+const ledgerCollection = (centerId: string) =>
+  collection(db, "centers", centerId, "ledgerEntries");
+
+const expensesCollection = (centerId: string) =>
+  collection(db, "centers", centerId, "expenses");
 
 const membersCollection = (centerId: string) =>
   collection(db, "centers", centerId, "members");
@@ -143,6 +199,31 @@ const toDate = (value: unknown): Date | null => {
   }
   return null;
 };
+
+const sortTimestampDesc = <T extends { paidAt?: Timestamp; createdAt?: Timestamp }>(
+  rows: T[]
+): T[] =>
+  [...rows].sort((a, b) => {
+    const aMs = toDate(a.paidAt)?.getTime() ?? toDate(a.createdAt)?.getTime() ?? 0;
+    const bMs = toDate(b.paidAt)?.getTime() ?? toDate(b.createdAt)?.getTime() ?? 0;
+    return bMs - aMs;
+  });
+
+const sortCreatedAtDesc = <T extends { createdAt?: Timestamp }>(rows: T[]): T[] =>
+  [...rows].sort((a, b) => {
+    const aMs = toDate(a.createdAt)?.getTime() ?? 0;
+    const bMs = toDate(b.createdAt)?.getTime() ?? 0;
+    return bMs - aMs;
+  });
+
+const sortDateThenCreatedDesc = <T extends { date?: Timestamp; createdAt?: Timestamp }>(
+  rows: T[]
+): T[] =>
+  [...rows].sort((a, b) => {
+    const aMs = toDate(a.date)?.getTime() ?? toDate(a.createdAt)?.getTime() ?? 0;
+    const bMs = toDate(b.date)?.getTime() ?? toDate(b.createdAt)?.getTime() ?? 0;
+    return bMs - aMs;
+  });
 
 export const getCurrentPeriod = (): BillingPeriod => {
   const now = new Date();
@@ -236,6 +317,25 @@ const listAllPayments = async (centerId: string): Promise<PaymentDoc[]> => {
   }));
 };
 
+const createLedgerEntry = async (
+  centerId: string,
+  entry: Omit<LedgerEntryDoc, "id" | "createdAt">
+): Promise<string> => {
+  const ref = await addDoc(ledgerCollection(centerId), {
+    ...entry,
+    createdAt: serverTimestamp(),
+  });
+  return ref.id;
+};
+
+const listAllExpenses = async (centerId: string): Promise<ExpenseDoc[]> => {
+  const snap = await getDocs(expensesCollection(centerId));
+  return snap.docs.map((row) => ({
+    id: row.id,
+    ...(row.data() as Omit<ExpenseDoc, "id">),
+  }));
+};
+
 export const listChargesByPeriod = async (
   centerId: string,
   period: BillingPeriod
@@ -252,6 +352,42 @@ export const listPaymentsByPeriod = async (
   const key = periodToKey(period);
   const rows = await listAllPayments(centerId);
   return rows.filter((row) => derivePaymentPeriodKey(row) === key);
+};
+
+export const listClientPayments = async (
+  centerId: string,
+  riderUid: string,
+  period: BillingPeriod
+): Promise<PaymentDoc[]> => {
+  const periodKey = periodToKey(period);
+
+  try {
+    // Firestore index required: payments: riderUid ASC + periodKey ASC + paidAt DESC
+    const q = query(
+      paymentsCollection(centerId),
+      where("riderUid", "==", riderUid),
+      where("periodKey", "==", periodKey),
+      orderBy("paidAt", "desc")
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((row) => ({
+      id: row.id,
+      ...(row.data() as Omit<PaymentDoc, "id">),
+    }));
+  } catch (error) {
+    console.warn("listClientPayments fallback without orderBy", error);
+    const q = query(
+      paymentsCollection(centerId),
+      where("riderUid", "==", riderUid),
+      where("periodKey", "==", periodKey)
+    );
+    const snap = await getDocs(q);
+    const rows = snap.docs.map((row) => ({
+      id: row.id,
+      ...(row.data() as Omit<PaymentDoc, "id">),
+    }));
+    return sortTimestampDesc(rows);
+  }
 };
 
 export const listClientBillingServices = async (
@@ -301,9 +437,10 @@ export const getMonthlySummary = async (
     monthKeys.push(keyFromDate(date));
   }
 
-  const [charges, payments] = await Promise.all([
+  const [charges, payments, expenses] = await Promise.all([
     listAllCharges(centerId),
     listAllPayments(centerId),
+    listAllExpenses(centerId),
   ]);
 
   const map = new Map<
@@ -311,6 +448,8 @@ export const getMonthlySummary = async (
     {
       billed: number;
       collected: number;
+      expenses: number;
+      net: number;
       pending: number;
       overdue: number;
       riders: Set<string>;
@@ -321,6 +460,8 @@ export const getMonthlySummary = async (
     map.set(key, {
       billed: 0,
       collected: 0,
+      expenses: 0,
+      net: 0,
       pending: 0,
       overdue: 0,
       riders: new Set<string>(),
@@ -359,14 +500,25 @@ export const getMonthlySummary = async (
     }
   });
 
+  expenses.forEach((expense) => {
+    if (!expense.periodKey || !map.has(expense.periodKey)) return;
+    const row = map.get(expense.periodKey);
+    if (!row) return;
+    row.expenses += toNumber(expense.amount);
+  });
+
   return monthKeys.map((key) => {
     const period = keyToPeriod(key);
     const row = map.get(key);
+    const collected = row?.collected ?? 0;
+    const expenses = row?.expenses ?? 0;
     return {
       periodKey: key,
       periodLabel: monthLabel(period),
       billed: row?.billed ?? 0,
-      collected: row?.collected ?? 0,
+      collected,
+      expenses,
+      net: collected - expenses,
       pending: row?.pending ?? 0,
       overdue: row?.overdue ?? 0,
       clientCount: row?.riders.size ?? 0,
@@ -471,6 +623,230 @@ export const getMonthlyClientBreakdown = async (
     .sort((a, b) => a.riderLabel.localeCompare(b.riderLabel));
 };
 
+export const listLedgerEntriesByPeriod = async (
+  centerId: string,
+  period: BillingPeriod
+): Promise<LedgerEntryDoc[]> => {
+  const periodKey = periodToKey(period);
+
+  try {
+    // Firestore index may be required for periodKey + createdAt DESC on ledgerEntries.
+    const q = query(
+      ledgerCollection(centerId),
+      where("periodKey", "==", periodKey),
+      orderBy("createdAt", "desc")
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((row) => ({
+      id: row.id,
+      ...(row.data() as Omit<LedgerEntryDoc, "id">),
+    }));
+  } catch (error) {
+    console.warn("listLedgerEntriesByPeriod fallback without orderBy", error);
+    const q = query(ledgerCollection(centerId), where("periodKey", "==", periodKey));
+    const snap = await getDocs(q);
+    const rows = snap.docs.map((row) => ({
+      id: row.id,
+      ...(row.data() as Omit<LedgerEntryDoc, "id">),
+    }));
+    return sortCreatedAtDesc(rows);
+  }
+};
+
+export const listClientLedgerEntriesByPeriod = async (
+  centerId: string,
+  riderUid: string,
+  period: BillingPeriod
+): Promise<LedgerEntryDoc[]> => {
+  const periodKey = periodToKey(period);
+
+  try {
+    // Firestore index may be required: ledgerEntries riderUid ASC + periodKey ASC + createdAt DESC
+    const q = query(
+      ledgerCollection(centerId),
+      where("riderUid", "==", riderUid),
+      where("periodKey", "==", periodKey),
+      orderBy("createdAt", "desc")
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((row) => ({
+      id: row.id,
+      ...(row.data() as Omit<LedgerEntryDoc, "id">),
+    }));
+  } catch (error) {
+    console.warn("listClientLedgerEntriesByPeriod fallback without orderBy", error);
+    const q = query(
+      ledgerCollection(centerId),
+      where("riderUid", "==", riderUid),
+      where("periodKey", "==", periodKey)
+    );
+    const snap = await getDocs(q);
+    const rows = snap.docs.map((row) => ({
+      id: row.id,
+      ...(row.data() as Omit<LedgerEntryDoc, "id">),
+    }));
+    return sortCreatedAtDesc(rows);
+  }
+};
+
+export const listExpensesByPeriod = async (
+  centerId: string,
+  period: BillingPeriod
+): Promise<ExpenseDoc[]> => {
+  const periodKey = periodToKey(period);
+
+  try {
+    // Firestore index may be required: expenses periodKey ASC + date DESC
+    const q = query(
+      expensesCollection(centerId),
+      where("periodKey", "==", periodKey),
+      orderBy("date", "desc")
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((row) => ({
+      id: row.id,
+      ...(row.data() as Omit<ExpenseDoc, "id">),
+    }));
+  } catch (error) {
+    console.warn("listExpensesByPeriod fallback without orderBy", error);
+    const q = query(expensesCollection(centerId), where("periodKey", "==", periodKey));
+    const snap = await getDocs(q);
+    const rows = snap.docs.map((row) => ({
+      id: row.id,
+      ...(row.data() as Omit<ExpenseDoc, "id">),
+    }));
+    return sortDateThenCreatedDesc(rows);
+  }
+};
+
+export const createExpense = async (
+  centerId: string,
+  payload: CreateExpenseInput
+): Promise<string> => {
+  const category = payload.category.trim();
+  const description = payload.description.trim();
+  const amount = toNumber(payload.amount);
+
+  if (!category) {
+    throw new Error("La categoria del gasto es obligatoria.");
+  }
+  if (!description) {
+    throw new Error("La descripcion del gasto es obligatoria.");
+  }
+  if (amount <= 0) {
+    throw new Error("El importe del gasto debe ser mayor que 0.");
+  }
+
+  const periodKey = periodToKey(payload.period);
+  const expenseRef = await addDoc(expensesCollection(centerId), {
+    periodKey,
+    category,
+    description,
+    amount,
+    date: Timestamp.fromDate(payload.date ?? new Date()),
+    method: payload.method?.trim() || null,
+    notes: payload.notes?.trim() || null,
+    createdAt: serverTimestamp(),
+    ledgerEntryId: null,
+  });
+
+  const ledgerEntryId = await createLedgerEntry(centerId, {
+    periodKey,
+    type: "EXPENSE",
+    riderUid: null,
+    refId: expenseRef.id,
+    summary: `Gasto - ${category}: ${description}`,
+    amountSigned: -amount,
+  });
+
+  await updateDoc(expenseRef, {
+    ledgerEntryId,
+  });
+
+  return expenseRef.id;
+};
+
+export const updateExpense = async (
+  centerId: string,
+  expenseId: string,
+  changes: UpdateExpenseInput
+): Promise<void> => {
+  const expenseRef = doc(db, "centers", centerId, "expenses", expenseId);
+  const snap = await getDoc(expenseRef);
+  if (!snap.exists()) {
+    throw new Error("No existe el gasto indicado.");
+  }
+
+  const current = { id: snap.id, ...(snap.data() as Omit<ExpenseDoc, "id">) };
+
+  const nextCategory =
+    changes.category !== undefined ? changes.category.trim() : current.category || "";
+  const nextDescription =
+    changes.description !== undefined
+      ? changes.description.trim()
+      : current.description || "";
+  const nextAmount =
+    changes.amount !== undefined ? toNumber(changes.amount) : toNumber(current.amount);
+
+  if (!nextCategory) {
+    throw new Error("La categoria del gasto es obligatoria.");
+  }
+  if (!nextDescription) {
+    throw new Error("La descripcion del gasto es obligatoria.");
+  }
+  if (nextAmount <= 0) {
+    throw new Error("El importe del gasto debe ser mayor que 0.");
+  }
+
+  const nextPeriodKey = changes.period ? periodToKey(changes.period) : current.periodKey;
+  if (!nextPeriodKey) {
+    throw new Error("No se pudo determinar el periodo del gasto.");
+  }
+
+  const updatePayload: Record<string, unknown> = {
+    periodKey: nextPeriodKey,
+    category: nextCategory,
+    description: nextDescription,
+    amount: nextAmount,
+  };
+
+  if (changes.date !== undefined) {
+    updatePayload.date = Timestamp.fromDate(changes.date);
+  }
+  if (changes.method !== undefined) {
+    updatePayload.method = changes.method?.trim() || null;
+  }
+  if (changes.notes !== undefined) {
+    updatePayload.notes = changes.notes?.trim() || null;
+  }
+
+  await updateDoc(expenseRef, updatePayload);
+
+  if (current.ledgerEntryId) {
+    const ledgerRef = doc(db, "centers", centerId, "ledgerEntries", current.ledgerEntryId);
+    await updateDoc(ledgerRef, {
+      periodKey: nextPeriodKey,
+      summary: `Gasto - ${nextCategory}: ${nextDescription}`,
+      amountSigned: -nextAmount,
+    });
+  }
+};
+
+export const deleteExpense = async (centerId: string, expenseId: string): Promise<void> => {
+  const expenseRef = doc(db, "centers", centerId, "expenses", expenseId);
+  const snap = await getDoc(expenseRef);
+  if (!snap.exists()) {
+    return;
+  }
+
+  const expense = snap.data() as Omit<ExpenseDoc, "id">;
+  if (expense.ledgerEntryId) {
+    const ledgerRef = doc(db, "centers", centerId, "ledgerEntries", expense.ledgerEntryId);
+    await deleteDoc(ledgerRef);
+  }
+  await deleteDoc(expenseRef);
+};
+
 export const registerPayment = async (
   centerId: string,
   payload: RegisterPaymentInput
@@ -496,6 +872,17 @@ export const registerPayment = async (
     notes: payload.notes?.trim() || null,
     paidAt: serverTimestamp(),
     createdAt: serverTimestamp(),
+  });
+
+  await createLedgerEntry(centerId, {
+    periodKey,
+    type: "PAYMENT",
+    riderUid,
+    refId: paymentRef.id,
+    summary: `Pago (${payload.method?.trim() || "manual"})${
+      payload.chargeId ? " - asociado a cargo" : ""
+    }`,
+    amountSigned: amount,
   });
 
   if (payload.chargeId) {
@@ -559,6 +946,15 @@ export const addOneOffCharge = async (
     issuedAt: serverTimestamp(),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+  });
+
+  await createLedgerEntry(centerId, {
+    periodKey,
+    type: "CHARGE",
+    riderUid,
+    refId: chargeRef.id,
+    summary: `Cargo puntual - ${description}`,
+    amountSigned: 0,
   });
 
   return chargeRef.id;
@@ -626,6 +1022,14 @@ export const generateMonthlyCharges = async (
 
   if (created > 0) {
     await batch.commit();
+    await createLedgerEntry(centerId, {
+      periodKey,
+      type: "CHARGE",
+      riderUid: null,
+      refId: `gen-${periodKey}-${Date.now()}`,
+      summary: `Generacion cargos mes: ${created} creados, ${skipped} existentes`,
+      amountSigned: 0,
+    });
   }
 
   return { created, skipped };
