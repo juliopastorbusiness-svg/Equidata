@@ -1,0 +1,113 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function hasMemberDoc(centerId) {
+      return exists(/databases/$(database)/documents/centers/$(centerId)/members/$(request.auth.uid));
+    }
+
+    function memberData(centerId) {
+      return get(/databases/$(database)/documents/centers/$(centerId)/members/$(request.auth.uid)).data;
+    }
+
+    function centerData(centerId) {
+      return get(/databases/$(database)/documents/centers/$(centerId)).data;
+    }
+
+    function hasCenterRole(centerId) {
+      return isSignedIn() && (
+        centerData(centerId).ownerUid == request.auth.uid ||
+        centerData(centerId).ownerId == request.auth.uid ||
+        request.auth.uid in centerData(centerId).admins ||
+        (
+          hasMemberDoc(centerId) &&
+          memberData(centerId).status == "active" &&
+          memberData(centerId).role in ["CENTER_OWNER", "CENTER_ADMIN"]
+        )
+      );
+    }
+
+    function isStudentDoc() {
+      return request.resource.data.firstName is string &&
+        request.resource.data.lastName is string &&
+        request.resource.data.level in ["INITIATION", "BASIC", "INTERMEDIATE", "ADVANCED", "COMPETITION"] &&
+        request.resource.data.status in ["ACTIVE", "INACTIVE", "LEAD"];
+    }
+
+    function isReservationDoc() {
+      return request.resource.data.classId is string &&
+        request.resource.data.studentId is string &&
+        request.resource.data.status in ["RESERVED", "CONFIRMED", "CANCELLED", "COMPLETED", "NO_SHOW"] &&
+        request.resource.data.reservationDate is timestamp;
+    }
+
+    function isPaymentDoc() {
+      return request.resource.data.studentId is string &&
+        request.resource.data.concept is string &&
+        request.resource.data.type in ["SINGLE_CLASS", "PACK", "MONTHLY", "COMPETITION", "OTHER"] &&
+        request.resource.data.amount is number &&
+        request.resource.data.amount > 0 &&
+        request.resource.data.date is timestamp &&
+        request.resource.data.paymentMethod in ["CASH", "TRANSFER", "CARD", "STRIPE"] &&
+        request.resource.data.status in ["PENDING", "PARTIAL", "PAID", "CANCELLED", "OVERDUE"];
+    }
+
+    match /centers/{centerId} {
+      allow read: if hasCenterRole(centerId);
+      allow update: if hasCenterRole(centerId);
+
+      match /paddocks/{docId} {
+        allow read, write: if hasCenterRole(centerId);
+      }
+
+      match /paddockAssignments/{docId} {
+        allow read, write: if hasCenterRole(centerId);
+      }
+
+      match /medications/{docId} {
+        allow read, write: if hasCenterRole(centerId);
+      }
+
+      match /horseTreatments/{docId} {
+        allow read, write: if hasCenterRole(centerId);
+      }
+
+      match /events/{docId} {
+        allow read, write: if hasCenterRole(centerId);
+      }
+
+      match /classes/{docId} {
+        allow read, write: if hasCenterRole(centerId);
+      }
+
+      match /trainings/{docId} {
+        allow read, write: if hasCenterRole(centerId);
+      }
+
+      match /competitions/{docId} {
+        allow read, write: if hasCenterRole(centerId);
+      }
+
+      match /students/{docId} {
+        allow read: if hasCenterRole(centerId);
+        allow create, update: if hasCenterRole(centerId) && isStudentDoc();
+        allow delete: if hasCenterRole(centerId);
+      }
+
+      match /classReservations/{docId} {
+        allow read: if hasCenterRole(centerId);
+        allow create, update: if hasCenterRole(centerId) && isReservationDoc();
+        allow delete: if hasCenterRole(centerId);
+      }
+
+      match /studentPayments/{docId} {
+        allow read: if hasCenterRole(centerId);
+        allow create, update: if hasCenterRole(centerId) && isPaymentDoc();
+        allow delete: if hasCenterRole(centerId);
+      }
+    }
+  }
+}

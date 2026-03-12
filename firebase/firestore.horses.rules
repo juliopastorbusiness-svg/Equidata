@@ -1,0 +1,131 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function centerPath(centerId) {
+      return /databases/$(database)/documents/centers/$(centerId);
+    }
+
+    function centerMemberPath(centerId, uid) {
+      return /databases/$(database)/documents/centers/$(centerId)/members/$(uid);
+    }
+
+    function horsePath(centerId, horseId) {
+      return /databases/$(database)/documents/centers/$(centerId)/horses/$(horseId);
+    }
+
+    function centerExists(centerId) {
+      return exists(centerPath(centerId));
+    }
+
+    function centerDoc(centerId) {
+      return get(centerPath(centerId));
+    }
+
+    function memberDoc(centerId) {
+      return get(centerMemberPath(centerId, request.auth.uid));
+    }
+
+    function isCenterOwner(centerId) {
+      return signedIn() && centerExists(centerId) && (
+        centerDoc(centerId).data.ownerUid == request.auth.uid ||
+        centerDoc(centerId).data.ownerId == request.auth.uid
+      );
+    }
+
+    function isCenterMember(centerId) {
+      return signedIn() && exists(centerMemberPath(centerId, request.auth.uid));
+    }
+
+    function centerRole(centerId) {
+      return isCenterMember(centerId) ? memberDoc(centerId).data.role : null;
+    }
+
+    function isCenterAdmin(centerId) {
+      return signedIn() && centerExists(centerId) && (
+        request.auth.uid in centerDoc(centerId).data.admins ||
+        centerRole(centerId) == "CENTER_ADMIN"
+      );
+    }
+
+    function isCenterPro(centerId) {
+      return signedIn() && centerRole(centerId) == "PRO";
+    }
+
+    function isCenterRider(centerId) {
+      return signedIn() && centerRole(centerId) == "RIDER";
+    }
+
+    function isCenterStaff(centerId) {
+      return isCenterOwner(centerId) || isCenterAdmin(centerId);
+    }
+
+    function horseDoc(centerId, horseId) {
+      return get(horsePath(centerId, horseId));
+    }
+
+    function belongsToCenter(centerId, horseId) {
+      return centerExists(centerId) && exists(horsePath(centerId, horseId));
+    }
+
+    function isLinkedHorseUser(centerId, horseId) {
+      return signedIn() && belongsToCenter(centerId, horseId) && (
+        horseDoc(centerId, horseId).data.ownerId == request.auth.uid ||
+        horseDoc(centerId, horseId).data.riderId == request.auth.uid
+      );
+    }
+
+    function canReadHorse(centerId, horseId) {
+      return isCenterStaff(centerId) ||
+        isCenterPro(centerId) ||
+        isLinkedHorseUser(centerId, horseId) ||
+        isCenterRider(centerId) && isLinkedHorseUser(centerId, horseId);
+    }
+
+    function canWriteHorse(centerId) {
+      return isCenterStaff(centerId);
+    }
+
+    function horsePayloadValid() {
+      return request.resource.data.name is string &&
+        request.resource.data.name.size() >= 2;
+    }
+
+    match /centers/{centerId}/horses/{horseId} {
+      allow read: if canReadHorse(centerId, horseId);
+      allow create: if canWriteHorse(centerId) &&
+        request.resource.data.keys().hasAll(["name", "status", "sex"]) &&
+        horsePayloadValid();
+      allow update: if canWriteHorse(centerId) && horsePayloadValid();
+      allow delete: if canWriteHorse(centerId);
+
+      match /medicalRecords/{recordId} {
+        allow read: if canReadHorse(centerId, horseId);
+        allow create, update, delete: if canWriteHorse(centerId);
+      }
+
+      match /weightHistory/{weightId} {
+        allow read: if canReadHorse(centerId, horseId);
+        allow create, update, delete: if canWriteHorse(centerId);
+      }
+
+      match /injuries/{injuryId} {
+        allow read: if canReadHorse(centerId, horseId);
+        allow create, update, delete: if canWriteHorse(centerId);
+      }
+
+      match /documents/{documentId} {
+        allow read: if canReadHorse(centerId, horseId);
+        allow create, update, delete: if canWriteHorse(centerId);
+      }
+
+      match /alerts/{alertId} {
+        allow read: if canReadHorse(centerId, horseId);
+        allow write: if canWriteHorse(centerId);
+      }
+    }
+  }
+}
