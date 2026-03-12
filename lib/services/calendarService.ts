@@ -36,8 +36,12 @@ export type CreateEventInput = {
   description?: string;
   type: Event["type"];
   status?: Event["status"];
+  date?: string;
+  startTime?: string;
+  endTime?: string;
   startAt: Date;
   endAt: Date;
+  location?: string;
   arenaId?: string;
   classId?: string;
   trainingId?: string;
@@ -45,6 +49,7 @@ export type CreateEventInput = {
   trainerId?: string;
   horseIds?: string[];
   studentIds?: string[];
+  notes?: string;
 };
 
 export type UpdateEventInput = Partial<CreateEventInput>;
@@ -71,6 +76,20 @@ const assertDateOrder = (startAt: Date, endAt: Date) => {
   }
 };
 
+const formatDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const formatTimeValue = (date: Date) =>
+  date.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
 const filterEvent = (event: Event, filters?: EventFilters): boolean => {
   if (!filters) return true;
   if (filters.type && event.type !== filters.type) return false;
@@ -81,12 +100,35 @@ const filterEvent = (event: Event, filters?: EventFilters): boolean => {
   return true;
 };
 
-export const getEventsByDateRange = async (
+export async function getEventsByDateRange(
   centerId: string,
   range: DateRange,
   filters?: EventFilters
-): Promise<Event[]> => {
+): Promise<Event[]>;
+export async function getEventsByDateRange(
+  centerId: string,
+  startDate: Date | Timestamp,
+  endDate: Date | Timestamp,
+  filters?: EventFilters
+): Promise<Event[]>;
+export async function getEventsByDateRange(
+  centerId: string,
+  rangeOrStart: DateRange | Date | Timestamp,
+  endOrFilters?: Date | Timestamp | EventFilters,
+  maybeFilters?: EventFilters
+): Promise<Event[]> {
   const normalizedCenterId = assertCenterId(centerId);
+  const range =
+    rangeOrStart instanceof Date || rangeOrStart instanceof Timestamp
+      ? {
+          start: rangeOrStart,
+          end: endOrFilters as Date | Timestamp,
+        }
+      : rangeOrStart;
+  const filters =
+    rangeOrStart instanceof Date || rangeOrStart instanceof Timestamp
+      ? maybeFilters
+      : (endOrFilters as EventFilters | undefined);
   const snapshot = await getDocs(
     query(
       eventsCollection(normalizedCenterId),
@@ -99,7 +141,7 @@ export const getEventsByDateRange = async (
   return snapshot.docs
     .map((row) => mapEvent(row.id, row.data(), normalizedCenterId))
     .filter((event) => filterEvent(event, filters));
-};
+}
 
 export const getEventById = async (
   centerId: string,
@@ -109,6 +151,16 @@ export const getEventById = async (
   const snapshot = await getDoc(eventDoc(normalizedCenterId, eventId));
   if (!snapshot.exists()) return null;
   return mapEvent(snapshot.id, snapshot.data(), normalizedCenterId);
+};
+
+export const getEventsByDay = async (
+  centerId: string,
+  date: string,
+  filters?: EventFilters
+): Promise<Event[]> => {
+  const start = new Date(`${date}T00:00:00`);
+  const end = new Date(`${date}T23:59:59.999`);
+  return getEventsByDateRange(centerId, { start, end }, filters);
 };
 
 export const assertNoSchedulingConflicts = async (
@@ -172,8 +224,12 @@ export const createEvent = async (
     description: optionalStringOrNull(input.description),
     type: input.type,
     status: input.status ?? "SCHEDULED",
+    date: input.date ?? formatDateKey(input.startAt),
+    startTime: input.startTime ?? formatTimeValue(input.startAt),
+    endTime: input.endTime ?? formatTimeValue(input.endAt),
     startAt: Timestamp.fromDate(input.startAt),
     endAt: Timestamp.fromDate(input.endAt),
+    location: optionalStringOrNull(input.location),
     arenaId: optionalStringOrNull(input.arenaId),
     classId: optionalStringOrNull(input.classId),
     trainingId: optionalStringOrNull(input.trainingId),
@@ -181,6 +237,7 @@ export const createEvent = async (
     trainerId: optionalStringOrNull(input.trainerId),
     horseIds: optionalStringArray(input.horseIds),
     studentIds: optionalStringArray(input.studentIds),
+    notes: optionalStringOrNull(input.notes),
     ...withCreateAudit(),
   });
 
@@ -219,8 +276,12 @@ export const updateEvent = async (
   if ("description" in input) patch.description = optionalStringOrNull(input.description);
   if (input.type) patch.type = input.type;
   if (input.status) patch.status = input.status;
+  if (typeof input.date === "string") patch.date = input.date;
+  if (typeof input.startTime === "string") patch.startTime = input.startTime;
+  if (typeof input.endTime === "string") patch.endTime = input.endTime;
   if (input.startAt) patch.startAt = Timestamp.fromDate(input.startAt);
   if (input.endAt) patch.endAt = Timestamp.fromDate(input.endAt);
+  if ("location" in input) patch.location = optionalStringOrNull(input.location);
   if ("arenaId" in input) patch.arenaId = optionalStringOrNull(input.arenaId);
   if ("classId" in input) patch.classId = optionalStringOrNull(input.classId);
   if ("trainingId" in input) patch.trainingId = optionalStringOrNull(input.trainingId);
@@ -228,6 +289,7 @@ export const updateEvent = async (
   if ("trainerId" in input) patch.trainerId = optionalStringOrNull(input.trainerId);
   if ("horseIds" in input) patch.horseIds = optionalStringArray(input.horseIds);
   if ("studentIds" in input) patch.studentIds = optionalStringArray(input.studentIds);
+  if ("notes" in input) patch.notes = optionalStringOrNull(input.notes);
 
   await updateDoc(eventDoc(normalizedCenterId, eventId), {
     ...patch,

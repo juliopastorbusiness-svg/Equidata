@@ -1,6 +1,12 @@
 "use client";
 
 import { Event } from "@/lib/services";
+import {
+  eventStatusLabels,
+  eventTypeLabels,
+  eventTypeDotClass,
+  eventTypeRowClass,
+} from "@/components/center/calendar/calendarTheme";
 
 type EventCardProps = {
   event: Event;
@@ -12,31 +18,6 @@ type EventCardProps = {
   onDelete: (event: Event) => Promise<void>;
 };
 
-const typeLabels: Record<Event["type"], string> = {
-  CLASS: "Clase",
-  TRAINING: "Entrenamiento",
-  COMPETITION: "Competicion",
-  VET_REVIEW: "Revision veterinaria",
-  FARRIER: "Herrador",
-  GENERAL: "Evento general",
-  INTERNAL_TASK: "Tarea interna",
-};
-
-const statusClasses: Record<Event["status"], string> = {
-  SCHEDULED: "border-blue-200 bg-blue-50 text-blue-700",
-  CONFIRMED: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  CANCELLED: "border-red-200 bg-red-50 text-red-700",
-  COMPLETED: "border-slate-200 bg-slate-100 text-slate-700",
-};
-
-const formatDateTime = (date: Date) =>
-  date.toLocaleString("es-ES", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
 export function EventCard({
   event,
   arenaLabel,
@@ -47,22 +28,18 @@ export function EventCard({
   onDelete,
 }: EventCardProps) {
   return (
-    <article className="rounded-2xl border border-brand-border bg-white/80 p-4 shadow-sm">
+    <article className="rounded-[24px] border border-white/80 bg-white/85 p-4 shadow-[0_18px_45px_-35px_rgba(15,23,42,0.4)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-base font-semibold text-brand-text">{event.title}</h3>
-            <span className="rounded-full border border-brand-border px-2 py-1 text-xs text-brand-secondary">
-              {typeLabels[event.type]}
-            </span>
-            <span
-              className={`rounded-full border px-2 py-1 text-xs font-medium ${statusClasses[event.status]}`}
-            >
-              {event.status}
+            <span className={`h-2.5 w-2.5 rounded-full ${eventTypeDotClass[event.type]}`} />
+            <h3 className="truncate text-base font-semibold text-brand-text">{event.title}</h3>
+            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${eventTypeRowClass[event.type]}`}>
+              {eventTypeLabels[event.type]}
             </span>
           </div>
-          <p className="mt-1 text-sm text-brand-secondary">
-            {formatDateTime(event.startAt.toDate())} - {formatDateTime(event.endAt.toDate())}
+          <p className="mt-2 text-sm text-brand-secondary">
+            {event.startTime} - {event.endTime} · {eventStatusLabels[event.status]}
           </p>
         </div>
 
@@ -70,26 +47,29 @@ export function EventCard({
           <button
             type="button"
             onClick={() => onEdit(event)}
-            className="inline-flex h-10 items-center rounded-xl border border-brand-border px-3 text-sm font-medium text-brand-text"
+            className="inline-flex h-10 items-center rounded-2xl border border-brand-border bg-brand-background/60 px-3 text-sm font-medium text-brand-text transition hover:bg-white"
           >
             Editar
           </button>
           <button
             type="button"
             onClick={() => void onDelete(event)}
-            className="inline-flex h-10 items-center rounded-xl border border-red-200 px-3 text-sm font-medium text-red-700"
+            className="inline-flex h-10 items-center rounded-2xl border border-rose-200 bg-rose-50 px-3 text-sm font-medium text-rose-700"
           >
             Eliminar
           </button>
         </div>
       </div>
 
-      {event.description && (
-        <p className="mt-3 text-sm leading-6 text-brand-secondary">{event.description}</p>
+      {(event.description || event.notes) && (
+        <div className="mt-4 space-y-2 text-sm leading-6 text-brand-secondary">
+          {event.description && <p>{event.description}</p>}
+          {event.notes && <p>{event.notes}</p>}
+        </div>
       )}
 
-      <div className="mt-3 grid gap-2 text-sm text-brand-secondary md:grid-cols-2">
-        <p>Pista: {arenaLabel ?? "Sin pista"}</p>
+      <div className="mt-4 grid gap-2 text-sm text-brand-secondary md:grid-cols-2">
+        <p>Ubicacion: {event.location ?? arenaLabel ?? "Sin ubicacion"}</p>
         <p>Entrenador: {trainerLabel ?? "Sin asignar"}</p>
         <p>Caballos: {horseLabels.length > 0 ? horseLabels.join(", ") : "Sin caballos"}</p>
         <p>Alumnos: {studentLabels.length > 0 ? studentLabels.join(", ") : "Sin alumnos"}</p>

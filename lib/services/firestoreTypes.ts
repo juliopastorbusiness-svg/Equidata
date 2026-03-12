@@ -85,8 +85,12 @@ export type FirestoreEventDoc = {
   description?: string | null;
   type: EventType;
   status: EventStatus;
+  date?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
   startAt: Timestamp;
   endAt: Timestamp;
+  location?: string | null;
   arenaId?: string | null;
   classId?: string | null;
   trainingId?: string | null;
@@ -94,6 +98,7 @@ export type FirestoreEventDoc = {
   trainerId?: string | null;
   horseIds?: string[] | null;
   studentIds?: string[] | null;
+  notes?: string | null;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };

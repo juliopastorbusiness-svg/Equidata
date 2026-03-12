@@ -94,8 +94,12 @@ export type Event = AuditFields & {
   description?: string;
   type: EventType;
   status: EventStatus;
+  date: string;
+  startTime: string;
+  endTime: string;
   startAt: Timestamp;
   endAt: Timestamp;
+  location?: string;
   arenaId?: string;
   classId?: string;
   trainingId?: string;
@@ -103,6 +107,7 @@ export type Event = AuditFields & {
   trainerId?: string;
   horseIds: string[];
   studentIds: string[];
+  notes?: string;
 };
 
 export type Class = AuditFields & {

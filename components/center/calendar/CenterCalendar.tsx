@@ -1,231 +1,120 @@
 "use client";
 
 import { Event } from "@/lib/services";
-
-export type CalendarViewMode = "day" | "week" | "month";
+import { AgendaMonthHeader } from "@/components/center/calendar/AgendaMonthHeader";
+import { CalendarDayCell } from "@/components/center/calendar/CalendarDayCell";
 
 type CenterCalendarProps = {
   events: Event[];
-  selectedDate: Date;
-  viewMode: CalendarViewMode;
+  visibleMonth: Date;
+  selectedDate: Date | null;
+  onVisibleMonthChange: (value: Date) => void;
   onSelectedDateChange: (value: Date) => void;
-  onViewModeChange: (value: CalendarViewMode) => void;
 };
 
-const buttonClassName =
-  "inline-flex h-10 items-center rounded-xl border border-brand-border px-3 text-sm font-medium text-brand-text";
+const dayNames = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"];
 
-const dayKey = (date: Date) => date.toISOString().slice(0, 10);
+const dayKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
-const startOfDay = (date: Date) =>
-  new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
-
-const startOfWeek = (date: Date) => {
-  const copy = startOfDay(date);
-  const day = copy.getDay();
+const startOfMonthGrid = (date: Date) => {
+  const first = new Date(date.getFullYear(), date.getMonth(), 1);
+  const day = first.getDay();
   const diff = day === 0 ? -6 : 1 - day;
-  copy.setDate(copy.getDate() + diff);
-  return copy;
+  first.setDate(first.getDate() + diff);
+  first.setHours(0, 0, 0, 0);
+  return first;
 };
 
-const endOfWeek = (date: Date) => {
-  const copy = startOfWeek(date);
-  copy.setDate(copy.getDate() + 6);
-  return copy;
-};
-
-const startOfMonthGrid = (date: Date) =>
-  startOfWeek(new Date(date.getFullYear(), date.getMonth(), 1));
-
-const buildWeekDays = (date: Date) =>
-  Array.from({ length: 7 }, (_, index) => {
-    const next = startOfWeek(date);
-    next.setDate(next.getDate() + index);
-    return next;
-  });
-
-const buildMonthDays = (date: Date) =>
+const buildMonthGrid = (date: Date) =>
   Array.from({ length: 42 }, (_, index) => {
     const next = startOfMonthGrid(date);
     next.setDate(next.getDate() + index);
     return next;
   });
 
-const groupEventsByDay = (events: Event[]) => {
-  const map = new Map<string, Event[]>();
-  events.forEach((event) => {
-    const key = dayKey(event.startAt.toDate());
-    const bucket = map.get(key) ?? [];
-    bucket.push(event);
-    map.set(key, bucket.sort((left, right) => left.startAt.seconds - right.startAt.seconds));
-  });
-  return map;
-};
-
-const shiftDate = (date: Date, mode: CalendarViewMode, direction: -1 | 1) => {
-  const next = new Date(date);
-  if (mode === "day") next.setDate(next.getDate() + direction);
-  if (mode === "week") next.setDate(next.getDate() + direction * 7);
-  if (mode === "month") next.setMonth(next.getMonth() + direction);
-  return next;
-};
+const isSameDate = (left: Date | null, right: Date) =>
+  Boolean(left) &&
+  left!.getFullYear() === right.getFullYear() &&
+  left!.getMonth() === right.getMonth() &&
+  left!.getDate() === right.getDate();
 
 export function CenterCalendar({
   events,
+  visibleMonth,
   selectedDate,
-  viewMode,
+  onVisibleMonthChange,
   onSelectedDateChange,
-  onViewModeChange,
 }: CenterCalendarProps) {
-  const eventMap = groupEventsByDay(events);
-  const weekDays = buildWeekDays(selectedDate);
-  const monthDays = buildMonthDays(selectedDate);
-  const title =
-    viewMode === "day"
-      ? selectedDate.toLocaleDateString("es-ES", {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-        })
-      : viewMode === "week"
-        ? `${startOfWeek(selectedDate).toLocaleDateString("es-ES")} - ${endOfWeek(selectedDate).toLocaleDateString("es-ES")}`
-        : selectedDate.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+  const gridDays = buildMonthGrid(visibleMonth);
+  const eventsByDay = new Map<string, Event[]>();
+
+  events.forEach((event) => {
+    const key = event.date || dayKey(event.startAt.toDate());
+    const bucket = eventsByDay.get(key) ?? [];
+    bucket.push(event);
+    eventsByDay.set(
+      key,
+      bucket.sort((left, right) => left.startAt.toMillis() - right.startAt.toMillis())
+    );
+  });
+
+  const monthHasEvents = events.length > 0;
+  const today = new Date();
 
   return (
-    <section className="rounded-3xl border border-brand-border bg-white/80 p-5 shadow-sm">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-brand-text">Calendario</h2>
-          <p className="text-sm text-brand-secondary">{title}</p>
-        </div>
+    <section className="space-y-4">
+      <AgendaMonthHeader
+        visibleMonth={visibleMonth}
+        onPrevMonth={() =>
+          onVisibleMonthChange(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1))
+        }
+        onNextMonth={() =>
+          onVisibleMonthChange(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1))
+        }
+        onToday={() => {
+          const next = new Date();
+          onVisibleMonthChange(new Date(next.getFullYear(), next.getMonth(), 1));
+          onSelectedDateChange(next);
+        }}
+      />
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className={buttonClassName}
-            onClick={() => onSelectedDateChange(shiftDate(selectedDate, viewMode, -1))}
-          >
-            Anterior
-          </button>
-          <button
-            type="button"
-            className={buttonClassName}
-            onClick={() => onSelectedDateChange(new Date())}
-          >
-            Hoy
-          </button>
-          <button
-            type="button"
-            className={buttonClassName}
-            onClick={() => onSelectedDateChange(shiftDate(selectedDate, viewMode, 1))}
-          >
-            Siguiente
-          </button>
-          {(["day", "week", "month"] as CalendarViewMode[]).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => onViewModeChange(mode)}
-              className={`${buttonClassName} ${viewMode === mode ? "border-brand-primary bg-brand-primary text-white" : ""}`}
+      <div className="rounded-[30px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(247,248,250,0.82))] p-4 shadow-[0_30px_80px_-42px_rgba(15,23,42,0.45)] backdrop-blur">
+        <div className="mb-3 grid grid-cols-7 gap-2 px-1">
+          {dayNames.map((day) => (
+            <div
+              key={day}
+              className="py-2 text-center text-xs font-semibold uppercase tracking-[0.2em] text-brand-secondary"
             >
-              {mode === "day" ? "Dia" : mode === "week" ? "Semana" : "Mes"}
-            </button>
+              {day}
+            </div>
           ))}
         </div>
+
+        <div className="grid grid-cols-7 gap-2">
+          {gridDays.map((day) => (
+            <CalendarDayCell
+              key={day.toISOString()}
+              date={day}
+              events={eventsByDay.get(dayKey(day)) ?? []}
+              isCurrentMonth={day.getMonth() === visibleMonth.getMonth()}
+              isToday={isSameDate(today, day)}
+              isSelected={isSameDate(selectedDate, day)}
+              onClick={() => onSelectedDateChange(day)}
+            />
+          ))}
+        </div>
+
+        {!monthHasEvents && (
+          <div className="mt-4 rounded-2xl border border-dashed border-brand-border bg-white/60 p-5 text-center text-sm text-brand-secondary">
+            Este mes no tiene actividades todavia. Selecciona un dia para crear la primera.
+          </div>
+        )}
       </div>
-
-      {viewMode === "day" && (
-        <div className="mt-4 rounded-2xl border border-brand-border bg-brand-background/50 p-4">
-          {(eventMap.get(dayKey(selectedDate)) ?? []).length === 0 ? (
-            <p className="text-sm text-brand-secondary">No hay eventos en esta fecha.</p>
-          ) : (
-            <div className="space-y-3">
-              {(eventMap.get(dayKey(selectedDate)) ?? []).map((event) => (
-                <div key={event.id} className="rounded-xl border border-brand-border bg-white px-3 py-2">
-                  <p className="text-sm font-semibold text-brand-text">{event.title}</p>
-                  <p className="text-xs text-brand-secondary">
-                    {event.startAt.toDate().toLocaleTimeString("es-ES", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}{" "}
-                    -{" "}
-                    {event.endAt.toDate().toLocaleTimeString("es-ES", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {viewMode === "week" && (
-        <div className="mt-4 grid gap-3 md:grid-cols-7">
-          {weekDays.map((day) => {
-            const dayEvents = eventMap.get(dayKey(day)) ?? [];
-            return (
-              <div key={day.toISOString()} className="rounded-2xl border border-brand-border bg-brand-background/50 p-3">
-                <button type="button" onClick={() => onSelectedDateChange(day)} className="text-left">
-                  <p className="text-sm font-semibold capitalize text-brand-text">
-                    {day.toLocaleDateString("es-ES", { weekday: "short" })}
-                  </p>
-                  <p className="text-xs text-brand-secondary">
-                    {day.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })}
-                  </p>
-                </button>
-                <div className="mt-3 space-y-2">
-                  {dayEvents.length === 0 ? (
-                    <p className="text-xs text-brand-secondary">Sin eventos</p>
-                  ) : (
-                    dayEvents.map((event) => (
-                      <div key={event.id} className="rounded-xl border border-brand-border bg-white px-2 py-2">
-                        <p className="truncate text-xs font-semibold text-brand-text">{event.title}</p>
-                        <p className="text-[11px] text-brand-secondary">
-                          {event.startAt.toDate().toLocaleTimeString("es-ES", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {viewMode === "month" && (
-        <div className="mt-4 grid grid-cols-7 gap-2">
-          {monthDays.map((day) => {
-            const dayEvents = eventMap.get(dayKey(day)) ?? [];
-            const isCurrentMonth = day.getMonth() === selectedDate.getMonth();
-            return (
-              <button
-                key={day.toISOString()}
-                type="button"
-                onClick={() => onSelectedDateChange(day)}
-                className={`min-h-28 rounded-2xl border p-3 text-left ${isCurrentMonth ? "border-brand-border bg-white/70" : "border-brand-border/60 bg-brand-background/30 text-brand-secondary"}`}
-              >
-                <p className="text-sm font-semibold">{day.getDate()}</p>
-                <div className="mt-2 space-y-1">
-                  {dayEvents.slice(0, 3).map((event) => (
-                    <div key={event.id} className="truncate rounded-lg bg-brand-background px-2 py-1 text-xs text-brand-text">
-                      {event.title}
-                    </div>
-                  ))}
-                  {dayEvents.length > 3 && (
-                    <p className="text-xs text-brand-secondary">+{dayEvents.length - 3} mas</p>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
     </section>
   );
 }

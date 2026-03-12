@@ -26,6 +26,20 @@ import {
 } from "@/lib/services/types";
 import { optionalStringArray } from "@/lib/services/shared";
 
+const formatDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const formatTimeValue = (date: Date) =>
+  date.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
 export const mapPaddock = (id: string, data: FirestorePaddockDoc, centerId: string): Paddock => ({
   id,
   centerId,
@@ -113,8 +127,12 @@ export const mapEvent = (id: string, data: FirestoreEventDoc, centerId: string):
   description: data.description ?? undefined,
   type: data.type,
   status: data.status,
+  date: data.date ?? formatDateKey(data.startAt.toDate()),
+  startTime: data.startTime ?? formatTimeValue(data.startAt.toDate()),
+  endTime: data.endTime ?? formatTimeValue(data.endAt.toDate()),
   startAt: data.startAt,
   endAt: data.endAt,
+  location: data.location ?? undefined,
   arenaId: data.arenaId ?? undefined,
   classId: data.classId ?? undefined,
   trainingId: data.trainingId ?? undefined,
@@ -122,6 +140,7 @@ export const mapEvent = (id: string, data: FirestoreEventDoc, centerId: string):
   trainerId: data.trainerId ?? undefined,
   horseIds: optionalStringArray(data.horseIds),
   studentIds: optionalStringArray(data.studentIds),
+  notes: data.notes ?? undefined,
   createdAt: data.createdAt,
   updatedAt: data.updatedAt,
 });

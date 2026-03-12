@@ -14,14 +14,17 @@ export type EventFormValues = {
   date: string;
   startTime: string;
   endTime: string;
+  location: string;
   arenaId: string;
   trainerId: string;
   horseIds: string[];
   studentIds: string[];
+  notes: string;
 };
 
 type EventFormProps = {
   defaultValues?: Partial<Event>;
+  initialDate?: string;
   submitting?: boolean;
   trainerOptions: CenterPersonOption[];
   studentOptions: CenterPersonOption[];
@@ -32,12 +35,13 @@ type EventFormProps = {
 };
 
 const inputClassName =
-  "mt-1 h-11 w-full rounded-xl border border-brand-border bg-white px-3 text-sm text-brand-text";
+  "mt-1 h-11 w-full rounded-2xl border border-brand-border bg-white px-3 text-sm text-brand-text";
 const textareaClassName =
-  "mt-1 w-full rounded-xl border border-brand-border bg-white px-3 py-2 text-sm text-brand-text";
+  "mt-1 w-full rounded-2xl border border-brand-border bg-white px-3 py-2 text-sm text-brand-text";
 
 export function EventForm({
   defaultValues,
+  initialDate,
   submitting,
   trainerOptions,
   studentOptions,
@@ -46,27 +50,20 @@ export function EventForm({
   submitLabel,
   onSubmit,
 }: EventFormProps) {
-  const toTimeValue = (value?: Date) =>
-    value
-      ? value.toLocaleTimeString("en-GB", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        })
-      : "";
-
   const [values, setValues] = useState<EventFormValues>({
-    title: defaultValues?.title ?? "",
-    description: defaultValues?.description ?? "",
-    type: defaultValues?.type ?? "GENERAL",
-    status: defaultValues?.status ?? "SCHEDULED",
-    date: defaultValues?.startAt ? defaultValues.startAt.toDate().toISOString().slice(0, 10) : "",
-    startTime: toTimeValue(defaultValues?.startAt?.toDate()) || "09:00",
-    endTime: toTimeValue(defaultValues?.endAt?.toDate()) || "10:00",
-    arenaId: defaultValues?.arenaId ?? "",
-    trainerId: defaultValues?.trainerId ?? "",
-    horseIds: defaultValues?.horseIds ?? [],
-    studentIds: defaultValues?.studentIds ?? [],
+    title: "",
+    description: "",
+    type: "GENERAL",
+    status: "SCHEDULED",
+    date: initialDate ?? "",
+    startTime: "09:00",
+    endTime: "10:00",
+    location: "",
+    arenaId: "",
+    trainerId: "",
+    horseIds: [],
+    studentIds: [],
+    notes: "",
   });
 
   useEffect(() => {
@@ -75,17 +72,21 @@ export function EventForm({
       description: defaultValues?.description ?? "",
       type: defaultValues?.type ?? "GENERAL",
       status: defaultValues?.status ?? "SCHEDULED",
-      date: defaultValues?.startAt
-        ? defaultValues.startAt.toDate().toISOString().slice(0, 10)
-        : "",
-      startTime: toTimeValue(defaultValues?.startAt?.toDate()) || "09:00",
-      endTime: toTimeValue(defaultValues?.endAt?.toDate()) || "10:00",
+      date:
+        defaultValues?.date ??
+        defaultValues?.startAt?.toDate().toISOString().slice(0, 10) ??
+        initialDate ??
+        "",
+      startTime: defaultValues?.startTime ?? "09:00",
+      endTime: defaultValues?.endTime ?? "10:00",
+      location: defaultValues?.location ?? "",
       arenaId: defaultValues?.arenaId ?? "",
       trainerId: defaultValues?.trainerId ?? "",
       horseIds: defaultValues?.horseIds ?? [],
       studentIds: defaultValues?.studentIds ?? [],
+      notes: defaultValues?.notes ?? "",
     });
-  }, [defaultValues]);
+  }, [defaultValues, initialDate]);
 
   return (
     <form
@@ -93,7 +94,7 @@ export function EventForm({
         event.preventDefault();
         void onSubmit(values);
       }}
-      className="grid gap-3"
+      className="grid gap-4"
     >
       <div>
         <label className="text-sm font-medium text-brand-secondary">Titulo</label>
@@ -105,35 +106,24 @@ export function EventForm({
         />
       </div>
 
-      <div>
-        <label className="text-sm font-medium text-brand-secondary">Tipo</label>
-        <select
-          value={values.type}
-          onChange={(event) =>
-            setValues((prev) => ({ ...prev, type: event.target.value as Event["type"] }))
-          }
-          className={inputClassName}
-        >
-          <option value="CLASS">Clase</option>
-          <option value="TRAINING">Entrenamiento</option>
-          <option value="COMPETITION">Competicion</option>
-          <option value="VET_REVIEW">Revision veterinaria</option>
-          <option value="FARRIER">Herrador</option>
-          <option value="GENERAL">Evento general</option>
-          <option value="INTERNAL_TASK">Tarea interna</option>
-        </select>
-      </div>
-
       <div className="grid gap-3 md:grid-cols-2">
         <div>
-          <label className="text-sm font-medium text-brand-secondary">Fecha</label>
-          <input
-            type="date"
-            value={values.date}
-            onChange={(event) => setValues((prev) => ({ ...prev, date: event.target.value }))}
+          <label className="text-sm font-medium text-brand-secondary">Tipo</label>
+          <select
+            value={values.type}
+            onChange={(event) =>
+              setValues((prev) => ({ ...prev, type: event.target.value as Event["type"] }))
+            }
             className={inputClassName}
-            required
-          />
+          >
+            <option value="CLASS">Clase</option>
+            <option value="TRAINING">Entrenamiento</option>
+            <option value="COMPETITION">Competicion</option>
+            <option value="VET_REVIEW">Revision veterinaria</option>
+            <option value="FARRIER">Herrador</option>
+            <option value="GENERAL">Evento general</option>
+            <option value="INTERNAL_TASK">Tarea interna</option>
+          </select>
         </div>
         <div>
           <label className="text-sm font-medium text-brand-secondary">Estado</label>
@@ -144,15 +134,25 @@ export function EventForm({
             }
             className={inputClassName}
           >
-            <option value="SCHEDULED">Programado</option>
-            <option value="CONFIRMED">Confirmado</option>
-            <option value="CANCELLED">Cancelado</option>
-            <option value="COMPLETED">Completado</option>
+            <option value="SCHEDULED">Pendiente</option>
+            <option value="CONFIRMED">Confirmada</option>
+            <option value="COMPLETED">Completada</option>
+            <option value="CANCELLED">Cancelada</option>
           </select>
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-3">
+        <div>
+          <label className="text-sm font-medium text-brand-secondary">Fecha</label>
+          <input
+            type="date"
+            value={values.date}
+            onChange={(event) => setValues((prev) => ({ ...prev, date: event.target.value }))}
+            className={inputClassName}
+            required
+          />
+        </div>
         <div>
           <label className="text-sm font-medium text-brand-secondary">Inicio</label>
           <input
@@ -175,20 +175,31 @@ export function EventForm({
         </div>
       </div>
 
-      <div>
-        <label className="text-sm font-medium text-brand-secondary">Pista</label>
-        <select
-          value={values.arenaId}
-          onChange={(event) => setValues((prev) => ({ ...prev, arenaId: event.target.value }))}
-          className={inputClassName}
-        >
-          <option value="">Sin pista</option>
-          {arenaOptions.map((arena) => (
-            <option key={arena.id} value={arena.id}>
-              {arena.name}
-            </option>
-          ))}
-        </select>
+      <div className="grid gap-3 md:grid-cols-2">
+        <div>
+          <label className="text-sm font-medium text-brand-secondary">Ubicacion</label>
+          <input
+            value={values.location}
+            onChange={(event) => setValues((prev) => ({ ...prev, location: event.target.value }))}
+            className={inputClassName}
+            placeholder="Pista cubierta, centro veterinario, etc."
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-brand-secondary">Pista</label>
+          <select
+            value={values.arenaId}
+            onChange={(event) => setValues((prev) => ({ ...prev, arenaId: event.target.value }))}
+            className={inputClassName}
+          >
+            <option value="">Sin pista</option>
+            {arenaOptions.map((arena) => (
+              <option key={arena.id} value={arena.id}>
+                {arena.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div>
@@ -231,11 +242,21 @@ export function EventForm({
         />
       </div>
 
+      <div>
+        <label className="text-sm font-medium text-brand-secondary">Notas</label>
+        <textarea
+          rows={3}
+          value={values.notes}
+          onChange={(event) => setValues((prev) => ({ ...prev, notes: event.target.value }))}
+          className={textareaClassName}
+        />
+      </div>
+
       <div className="flex justify-end">
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex h-11 items-center rounded-xl bg-brand-primary px-5 text-sm font-semibold text-white disabled:opacity-60"
+          className="inline-flex h-11 items-center rounded-2xl bg-brand-primary px-5 text-sm font-semibold text-white disabled:opacity-60"
         >
           {submitting ? "Guardando..." : submitLabel}
         </button>
