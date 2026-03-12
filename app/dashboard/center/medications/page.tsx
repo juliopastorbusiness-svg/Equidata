@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CenterHeader } from "@/components/center/CenterHeader";
 import { MedicationForm } from "@/components/center/medications/MedicationForm";
@@ -13,6 +13,22 @@ import {
 } from "@/lib/services";
 
 export default function CenterMedicationsPage() {
+  return (
+    <Suspense fallback={<CenterMedicationsPageFallback />}>
+      <CenterMedicationsPageContent />
+    </Suspense>
+  );
+}
+
+function CenterMedicationsPageFallback() {
+  return (
+    <main className="min-h-screen bg-brand-background p-6 text-brand-text">
+      <p>Cargando medicamentos...</p>
+    </main>
+  );
+}
+
+function CenterMedicationsPageContent() {
   const searchParams = useSearchParams();
   const horseIdFilter = searchParams.get("horseId");
   const {

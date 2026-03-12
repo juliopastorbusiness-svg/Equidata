@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { CenterHeader } from "@/components/center/CenterHeader";
 import { MedicationForm } from "@/components/center/medications/MedicationForm";
@@ -23,6 +23,22 @@ import {
 } from "@/lib/services";
 
 export default function CenterMedicationDetailPage() {
+  return (
+    <Suspense fallback={<CenterMedicationDetailPageFallback />}>
+      <CenterMedicationDetailPageContent />
+    </Suspense>
+  );
+}
+
+function CenterMedicationDetailPageFallback() {
+  return (
+    <main className="min-h-screen bg-brand-background p-6 text-brand-text">
+      <p>Cargando medicamento...</p>
+    </main>
+  );
+}
+
+function CenterMedicationDetailPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
