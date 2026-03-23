@@ -1,0 +1,14 @@
+
+> equidata@0.1.0 dev
+> next dev --webpack -p 3000
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   ▲ Next.js 16.0.7 (webpack)
+   - Local:         http://localhost:3000
+   - Network:       http://192.168.1.143:3000
+
+ ✓ Starting...
+ ✓ Ready in 2.7s
+ ○ Compiling / ...
+ GET / 200 in 1898ms (compile: 1510ms, render: 388ms)
+ GET / 200 in 7.2s (compile: 6.8s, render: 423ms)

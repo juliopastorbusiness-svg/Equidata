@@ -1020,15 +1020,46 @@ export const getCenterPersonOptions = async (
 ): Promise<CenterPersonOption[]> => {
   const normalizedCenterId = assertId("centerId", centerId);
   const membersSnapshot = await getDocs(centerMembersCollection(normalizedCenterId));
+  const memberIds = membersSnapshot.docs.map((memberDoc) => {
+    const data = memberDoc.data() as CenterMemberDoc & { userId?: string; uid?: string; status?: string };
+    return data.userId?.trim() || data.uid?.trim() || memberDoc.id;
+  });
+
+  const userSnapshots = await Promise.all(
+    memberIds.map(async (userId) => ({
+      userId,
+      snapshot: await getDoc(doc(usersCollection(), userId)),
+    }))
+  );
+
+  const userLabelMap = new Map<string, string>();
+  userSnapshots.forEach(({ userId, snapshot }) => {
+    if (!snapshot.exists()) return;
+    const data = snapshot.data() as UserDoc & { fullName?: string };
+    userLabelMap.set(
+      userId,
+      data.fullName?.trim() ||
+        data.displayName?.trim() ||
+        data.name?.trim() ||
+        data.email?.trim() ||
+        userId
+    );
+  });
 
   return membersSnapshot.docs
     .map((memberDoc) => {
-      const data = memberDoc.data() as CenterMemberDoc;
+      const data = memberDoc.data() as CenterMemberDoc & { userId?: string; uid?: string; status?: string };
+      const userId = data.userId?.trim() || data.uid?.trim() || memberDoc.id;
       return {
-        id: memberDoc.id,
-        label: data.displayName?.trim() || data.email?.trim() || memberDoc.id,
+        id: userId,
+        label:
+          data.displayName?.trim() ||
+          data.email?.trim() ||
+          userLabelMap.get(userId) ||
+          userId,
       };
     })
+    .filter((item, index, items) => items.findIndex((candidate) => candidate.id === item.id) === index)
     .sort((left, right) => left.label.localeCompare(right.label, "es"));
 };
 

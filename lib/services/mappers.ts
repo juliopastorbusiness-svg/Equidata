@@ -1,4 +1,7 @@
 import {
+  FirestoreArenaBookingDoc,
+  FirestoreCenterDoc,
+  FirestoreCenterMemberDoc,
   FirestoreClassDoc,
   FirestoreClassReservationDoc,
   FirestoreCompetitionDoc,
@@ -10,8 +13,14 @@ import {
   FirestoreStudentDoc,
   FirestoreStudentPaymentDoc,
   FirestoreTrainingDoc,
+  FirestoreUserProfileDoc,
 } from "@/lib/services/firestoreTypes";
 import {
+  ArenaBooking,
+  Center,
+  CenterEvent,
+  CenterMember,
+  CenterClass,
   Class,
   ClassReservation,
   Competition,
@@ -23,8 +32,195 @@ import {
   Student,
   StudentPayment,
   Training,
+  UserProfile,
 } from "@/lib/services/types";
 import { optionalStringArray } from "@/lib/services/shared";
+
+const slugify = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const normalizeUserRole = (role?: string | null): UserProfile["role"] => {
+  if (role === "center_owner" || role === "centerOwner") return "center_owner";
+  if (role === "center_staff" || role === "CENTER_ADMIN") return "center_staff";
+  if (role === "pro" || role === "rider") return role;
+  return "rider";
+};
+
+const normalizeClassLevel = (level?: string | null): CenterClass["level"] => {
+  if (
+    level === "initiation" ||
+    level === "basic" ||
+    level === "intermediate" ||
+    level === "advanced" ||
+    level === "competition" ||
+    level === "mixed"
+  ) {
+    return level;
+  }
+  if (level === "BEGINNER") return "initiation";
+  if (level === "INTERMEDIATE") return "intermediate";
+  if (level === "ADVANCED") return "advanced";
+  return "mixed";
+};
+
+const normalizeRequiredLevel = (level: CenterClass["level"]): Class["requiredLevel"] => {
+  if (level === "initiation" || level === "basic") return "BEGINNER";
+  if (level === "intermediate") return "INTERMEDIATE";
+  if (level === "advanced" || level === "competition") return "ADVANCED";
+  return "MIXED";
+};
+
+const normalizeClassStatus = (status?: string | null): CenterClass["status"] => {
+  if (
+    status === "draft" ||
+    status === "published" ||
+    status === "full" ||
+    status === "cancelled" ||
+    status === "completed"
+  ) {
+    return status;
+  }
+  if (status === "DRAFT") return "draft";
+  if (status === "PUBLISHED") return "published";
+  if (status === "CANCELLED") return "cancelled";
+  if (status === "COMPLETED") return "completed";
+  return "draft";
+};
+
+const normalizeArenaBookingStatus = (status?: string | null): ArenaBooking["status"] => {
+  if (status === "active" || status === "cancelled" || status === "completed") {
+    return status;
+  }
+  if (status === "ACTIVE") return "active";
+  if (status === "CANCELLED") return "cancelled";
+  if (status === "COMPLETED") return "completed";
+  return "active";
+};
+
+const normalizeArenaSourceType = (sourceType?: string | null): ArenaBooking["sourceType"] => {
+  if (
+    sourceType === "class" ||
+    sourceType === "training" ||
+    sourceType === "maintenance" ||
+    sourceType === "internal_block"
+  ) {
+    return sourceType;
+  }
+  return "internal_block";
+};
+
+const normalizeCenterEventSourceType = (
+  sourceType?: string | null
+): CenterEvent["sourceType"] => {
+  if (
+    sourceType === "class" ||
+    sourceType === "training" ||
+    sourceType === "competition" ||
+    sourceType === "manual"
+  ) {
+    return sourceType;
+  }
+  return "manual";
+};
+
+const normalizeReservationStatus = (status?: string | null): ClassReservation["status"] => {
+  if (
+    status === "pending" ||
+    status === "confirmed" ||
+    status === "cancelled" ||
+    status === "completed" ||
+    status === "no_show" ||
+    status === "RESERVED" ||
+    status === "CONFIRMED" ||
+    status === "CANCELLED" ||
+    status === "COMPLETED" ||
+    status === "NO_SHOW"
+  ) {
+    return status;
+  }
+  return "pending";
+};
+
+export const mapUserProfile = (id: string, data: FirestoreUserProfileDoc): UserProfile => ({
+  uid: data.uid?.trim() || id,
+  role: normalizeUserRole(data.role),
+  fullName:
+    data.fullName?.trim() ||
+    data.displayName?.trim() ||
+    data.name?.trim() ||
+    data.email?.trim() ||
+    id,
+  email: data.email?.trim() || "",
+  phone: data.phone?.trim() || undefined,
+  avatarUrl: data.avatarUrl?.trim() || undefined,
+  linkedCenters: optionalStringArray(data.linkedCenters),
+  activeCenterId: data.activeCenterId?.trim() || data.centerId?.trim() || undefined,
+  displayName: data.displayName?.trim() || undefined,
+  name: data.name?.trim() || undefined,
+  centerId: data.centerId?.trim() || null,
+  proType: data.proType?.trim() || null,
+  createdAt: data.createdAt,
+  updatedAt: data.updatedAt,
+});
+
+export const mapCenter = (id: string, data: FirestoreCenterDoc): Center => ({
+  id,
+  name: data.name?.trim() || "Centro sin nombre",
+  slug: data.slug?.trim() || slugify(data.name?.trim() || id) || id,
+  address: data.address?.trim() || undefined,
+  city: data.city?.trim() || undefined,
+  province: data.province?.trim() || undefined,
+  ownerId: data.ownerId?.trim() || data.ownerUid?.trim() || "",
+  status:
+    data.status === "inactive" || data.isActive === false
+      ? "inactive"
+      : "active",
+  createdAt: data.createdAt,
+  updatedAt: data.updatedAt,
+});
+
+export const mapCenterMember = (
+  id: string,
+  data: FirestoreCenterMemberDoc,
+  centerId: string
+): CenterMember => ({
+  id,
+  centerId,
+  userId: data.userId?.trim() || data.uid?.trim() || id,
+  role: normalizeUserRole(data.role),
+  status:
+    data.status === "active" || data.status === "rejected" || data.status === "pending"
+      ? data.status
+      : "pending",
+  joinedAt: data.joinedAt ?? undefined,
+  createdAt: data.createdAt,
+  updatedAt: data.updatedAt,
+});
+
+export const mapArenaBooking = (
+  id: string,
+  data: FirestoreArenaBookingDoc,
+  centerId: string
+): ArenaBooking => ({
+  id,
+  centerId,
+  arenaId: data.arenaId,
+  sourceType: normalizeArenaSourceType(data.sourceType),
+  sourceId: data.sourceId,
+  title: data.title,
+  startAt: data.startAt,
+  endAt: data.endAt,
+  status: normalizeArenaBookingStatus(data.status),
+  createdBy: data.createdBy,
+  createdAt: data.createdAt,
+  updatedAt: data.updatedAt,
+});
 
 const formatDateKey = (date: Date) => {
   const year = date.getFullYear();
@@ -123,9 +319,24 @@ export const mapHorseTreatment = (
 export const mapEvent = (id: string, data: FirestoreEventDoc, centerId: string): Event => ({
   id,
   centerId,
+  type: data.type,
+  sourceType:
+    normalizeCenterEventSourceType(data.sourceType) ||
+    (data.classId
+      ? "class"
+      : data.trainingId
+        ? "training"
+        : data.competitionId
+          ? "competition"
+          : "manual"),
+  sourceId:
+    data.sourceId ??
+    data.classId ??
+    data.trainingId ??
+    data.competitionId ??
+    id,
   title: data.title,
   description: data.description ?? undefined,
-  type: data.type,
   status: data.status,
   date: data.date ?? formatDateKey(data.startAt.toDate()),
   startTime: data.startTime ?? formatTimeValue(data.startAt.toDate()),
@@ -134,6 +345,7 @@ export const mapEvent = (id: string, data: FirestoreEventDoc, centerId: string):
   endAt: data.endAt,
   location: data.location ?? undefined,
   arenaId: data.arenaId ?? undefined,
+  riderId: data.riderId ?? undefined,
   classId: data.classId ?? undefined,
   trainingId: data.trainingId ?? undefined,
   competitionId: data.competitionId ?? undefined,
@@ -145,27 +357,72 @@ export const mapEvent = (id: string, data: FirestoreEventDoc, centerId: string):
   updatedAt: data.updatedAt,
 });
 
-export const mapClass = (id: string, data: FirestoreClassDoc, centerId: string): Class => ({
-  id,
-  centerId,
-  title: data.title,
-  description: data.description ?? undefined,
-  date: data.date,
-  startTime: data.startTime,
-  endTime: data.endTime,
-  trainerId: data.trainerId ?? undefined,
-  studentIds: optionalStringArray(data.studentIds),
-  horseIds: optionalStringArray(data.horseIds),
-  arenaId: data.arenaId ?? undefined,
-  requiredLevel: data.requiredLevel,
-  capacity: data.capacity,
-  price: data.price ?? undefined,
-  startAt: data.startAt,
-  endAt: data.endAt,
-  status: data.status,
-  createdAt: data.createdAt,
-  updatedAt: data.updatedAt,
-});
+export const mapCenterEvent = (
+  id: string,
+  data: FirestoreEventDoc,
+  centerId: string
+): CenterEvent => {
+  const event = mapEvent(id, data, centerId);
+  return {
+    id: event.id,
+    centerId: event.centerId,
+    type: event.type,
+    sourceType: event.sourceType,
+    sourceId: event.sourceId,
+    title: event.title,
+    startAt: event.startAt,
+    endAt: event.endAt,
+    arenaId: event.arenaId,
+    trainerId: event.trainerId,
+    riderId: event.riderId,
+    classId: event.classId,
+    status: event.status,
+    createdAt: event.createdAt,
+    updatedAt: event.updatedAt,
+  };
+};
+
+export const mapClass = (id: string, data: FirestoreClassDoc, centerId: string): Class => {
+  const level = normalizeClassLevel(data.level ?? data.requiredLevel);
+  const status = normalizeClassStatus(data.status);
+
+  return {
+    id,
+    centerId,
+    title: data.title,
+    discipline: data.discipline?.trim() || "General",
+    level,
+    description: data.description ?? data.notes ?? undefined,
+    date: data.date,
+    startTime: data.startTime,
+    endTime: data.endTime,
+    startAt: data.startAt,
+    endAt: data.endAt,
+    trainerId: data.trainerId ?? undefined,
+    studentIds: optionalStringArray(data.studentIds),
+    horseIds: optionalStringArray(data.horseIds),
+    arenaId: data.arenaId ?? undefined,
+    requiredLevel: data.requiredLevel ?? normalizeRequiredLevel(level),
+    capacity: data.capacity,
+    availableSpots: typeof data.availableSpots === "number" ? data.availableSpots : data.capacity,
+    price: data.price ?? undefined,
+    status,
+    legacyStatus:
+      status === "draft"
+        ? "DRAFT"
+        : status === "published" || status === "full"
+          ? "PUBLISHED"
+          : status === "cancelled"
+            ? "CANCELLED"
+            : "COMPLETED",
+    notes: data.notes ?? data.description ?? undefined,
+    visibility: data.visibility === "private" ? "private" : "members_only",
+    bookingMode: data.bookingMode === "request" ? "request" : "manual",
+    createdBy: data.createdBy?.trim() || "",
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+  };
+};
 
 export const mapTraining = (
   id: string,
@@ -234,11 +491,30 @@ export const mapClassReservation = (
   id,
   centerId,
   classId: data.classId,
-  studentId: data.studentId,
+  riderId: data.riderId ?? data.studentId ?? id,
+  studentId: data.studentId ?? data.riderId ?? undefined,
   reservedByUid: data.reservedByUid ?? undefined,
-  status: data.status,
-  reservationDate: data.reservationDate ?? undefined,
+  status: normalizeReservationStatus(data.status),
+  legacyStatus:
+    data.status === "RESERVED" ||
+    data.status === "CONFIRMED" ||
+    data.status === "CANCELLED" ||
+    data.status === "COMPLETED" ||
+    data.status === "NO_SHOW"
+      ? data.status
+      : data.status === "confirmed"
+        ? "CONFIRMED"
+        : data.status === "cancelled"
+          ? "CANCELLED"
+          : data.status === "completed"
+            ? "COMPLETED"
+            : data.status === "no_show"
+              ? "NO_SHOW"
+              : "RESERVED",
+  reservedAt: data.reservedAt ?? data.reservationDate ?? undefined,
+  reservationDate: data.reservationDate ?? data.reservedAt ?? undefined,
   notes: data.notes ?? undefined,
+  paymentStatus: data.paymentStatus ?? undefined,
   createdAt: data.createdAt,
   updatedAt: data.updatedAt,
 });

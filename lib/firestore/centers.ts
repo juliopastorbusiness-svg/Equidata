@@ -9,6 +9,8 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { CenterScopedRole, normalizeCenterRole, UserProfile } from "@/lib/auth/types";
+import { mapCenter } from "@/lib/services/mappers";
+import { FirestoreCenterDoc } from "@/lib/services/firestoreTypes";
 
 export type CenterMembership = {
   centerId: string;
@@ -18,13 +20,17 @@ export type CenterMembership = {
 
 type CenterDoc = {
   name?: string;
+  slug?: string;
+  city?: string;
   ownerUid?: string;
   ownerId?: string;
   admins?: string[];
+  status?: string;
 };
 
 type CenterMemberDoc = {
   uid?: string;
+  userId?: string;
   role?: string;
   displayName?: string;
   email?: string;
@@ -51,7 +57,7 @@ const upsertMembership = (
 };
 
 const readCenterName = (data: CenterDoc): string => {
-  return data.name?.trim() || "Centro sin nombre";
+  return mapCenter("center", data as FirestoreCenterDoc).name;
 };
 
 export const getCenterMemberships = async (
@@ -94,11 +100,12 @@ export const getCenterMemberships = async (
 
   try {
     const centerNameCache = new Map<string, string>();
-    const membersSnap = await getDocs(
-      query(collectionGroup(db, "members"), where("uid", "==", uid))
-    );
+    const [membersByUserIdSnap, membersByUidSnap] = await Promise.all([
+      getDocs(query(collectionGroup(db, "members"), where("userId", "==", uid))),
+      getDocs(query(collectionGroup(db, "members"), where("uid", "==", uid))),
+    ]);
 
-    for (const memberDoc of membersSnap.docs) {
+    for (const memberDoc of [...membersByUserIdSnap.docs, ...membersByUidSnap.docs]) {
       const memberData = memberDoc.data() as CenterMemberDoc;
       if (memberData.status && memberData.status !== "active") {
         continue;
@@ -168,5 +175,6 @@ export const pickLegacyRoleHome = (profile: UserProfile | null): string => {
   const role = profile?.role;
   if (role === "pro") return "/dashboard/pro";
   if (role === "rider") return "/dashboard/rider";
+  if (role === "center_owner" || role === "center_staff") return "/dashboard/center";
   return "/dashboard";
 };

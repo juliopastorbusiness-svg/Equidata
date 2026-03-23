@@ -10,8 +10,8 @@ import {
   where,
 } from "firebase/firestore";
 import { FirestoreEventDoc } from "@/lib/services/firestoreTypes";
-import { mapEvent } from "@/lib/services/mappers";
-import { DateRange, Event } from "@/lib/services/types";
+import { mapCenterEvent, mapEvent } from "@/lib/services/mappers";
+import { CenterEvent, Class, DateRange, Event } from "@/lib/services/types";
 import {
   assertCenterId,
   assertRequiredString,
@@ -29,12 +29,16 @@ export type EventFilters = {
   horseId?: string;
   arenaId?: string;
   type?: Event["type"];
+  sourceType?: CenterEvent["sourceType"];
+  sourceId?: string;
 };
 
 export type CreateEventInput = {
   title: string;
   description?: string;
   type: Event["type"];
+  sourceType?: CenterEvent["sourceType"];
+  sourceId?: string;
   status?: Event["status"];
   date?: string;
   startTime?: string;
@@ -43,6 +47,7 @@ export type CreateEventInput = {
   endAt: Date;
   location?: string;
   arenaId?: string;
+  riderId?: string;
   classId?: string;
   trainingId?: string;
   competitionId?: string;
@@ -93,6 +98,8 @@ const formatTimeValue = (date: Date) =>
 const filterEvent = (event: Event, filters?: EventFilters): boolean => {
   if (!filters) return true;
   if (filters.type && event.type !== filters.type) return false;
+  if (filters.sourceType && event.sourceType !== filters.sourceType) return false;
+  if (filters.sourceId && event.sourceId !== filters.sourceId) return false;
   if (filters.trainerId && event.trainerId !== filters.trainerId) return false;
   if (filters.arenaId && event.arenaId !== filters.arenaId) return false;
   if (filters.horseId && !event.horseIds.includes(filters.horseId)) return false;
@@ -143,6 +150,63 @@ export async function getEventsByDateRange(
     .filter((event) => filterEvent(event, filters));
 }
 
+export async function getCenterEventsByDateRange(
+  centerId: string,
+  range: DateRange,
+  filters?: EventFilters
+): Promise<CenterEvent[]>;
+export async function getCenterEventsByDateRange(
+  centerId: string,
+  startDate: Date | Timestamp,
+  endDate: Date | Timestamp,
+  filters?: EventFilters
+): Promise<CenterEvent[]>;
+export async function getCenterEventsByDateRange(
+  centerId: string,
+  rangeOrStart: DateRange | Date | Timestamp,
+  endOrFilters?: Date | Timestamp | EventFilters,
+  maybeFilters?: EventFilters
+): Promise<CenterEvent[]> {
+  const events = await getEventsByDateRange(
+    centerId,
+    rangeOrStart as DateRange & Date & Timestamp,
+    endOrFilters as Date | Timestamp & EventFilters,
+    maybeFilters
+  );
+
+  return events.map((event) =>
+    mapCenterEvent(
+      event.id,
+      {
+        title: event.title,
+        description: event.description,
+        type: event.type,
+        sourceType: event.sourceType,
+        sourceId: event.sourceId,
+        status: event.status,
+        date: event.date,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        startAt: event.startAt,
+        endAt: event.endAt,
+        location: event.location,
+        arenaId: event.arenaId,
+        riderId: event.riderId,
+        classId: event.classId,
+        trainingId: event.trainingId,
+        competitionId: event.competitionId,
+        trainerId: event.trainerId,
+        horseIds: event.horseIds,
+        studentIds: event.studentIds,
+        notes: event.notes,
+        createdAt: event.createdAt,
+        updatedAt: event.updatedAt,
+      },
+      event.centerId
+    )
+  );
+}
+
 export const getEventById = async (
   centerId: string,
   eventId: string
@@ -151,6 +215,23 @@ export const getEventById = async (
   const snapshot = await getDoc(eventDoc(normalizedCenterId, eventId));
   if (!snapshot.exists()) return null;
   return mapEvent(snapshot.id, snapshot.data(), normalizedCenterId);
+};
+
+const getEventBySource = async (
+  centerId: string,
+  sourceType: CenterEvent["sourceType"],
+  sourceId: string
+): Promise<Event | null> => {
+  const snapshot = await getDocs(
+    query(
+      eventsCollection(centerId),
+      where("sourceType", "==", sourceType),
+      where("sourceId", "==", sourceId)
+    )
+  );
+  const first = snapshot.docs[0];
+  if (!first) return null;
+  return mapEvent(first.id, first.data(), centerId);
 };
 
 export const getEventsByDay = async (
@@ -223,6 +304,12 @@ export const createEvent = async (
     title: assertRequiredString("El titulo del evento", input.title),
     description: optionalStringOrNull(input.description),
     type: input.type,
+    sourceType: input.sourceType ?? "manual",
+    sourceId:
+      optionalStringOrNull(input.sourceId) ??
+      optionalStringOrNull(input.classId) ??
+      optionalStringOrNull(input.trainingId) ??
+      optionalStringOrNull(input.competitionId),
     status: input.status ?? "SCHEDULED",
     date: input.date ?? formatDateKey(input.startAt),
     startTime: input.startTime ?? formatTimeValue(input.startAt),
@@ -231,6 +318,7 @@ export const createEvent = async (
     endAt: Timestamp.fromDate(input.endAt),
     location: optionalStringOrNull(input.location),
     arenaId: optionalStringOrNull(input.arenaId),
+    riderId: optionalStringOrNull(input.riderId),
     classId: optionalStringOrNull(input.classId),
     trainingId: optionalStringOrNull(input.trainingId),
     competitionId: optionalStringOrNull(input.competitionId),
@@ -275,6 +363,8 @@ export const updateEvent = async (
   }
   if ("description" in input) patch.description = optionalStringOrNull(input.description);
   if (input.type) patch.type = input.type;
+  if ("sourceType" in input) patch.sourceType = input.sourceType ?? "manual";
+  if ("sourceId" in input) patch.sourceId = optionalStringOrNull(input.sourceId);
   if (input.status) patch.status = input.status;
   if (typeof input.date === "string") patch.date = input.date;
   if (typeof input.startTime === "string") patch.startTime = input.startTime;
@@ -283,6 +373,7 @@ export const updateEvent = async (
   if (input.endAt) patch.endAt = Timestamp.fromDate(input.endAt);
   if ("location" in input) patch.location = optionalStringOrNull(input.location);
   if ("arenaId" in input) patch.arenaId = optionalStringOrNull(input.arenaId);
+  if ("riderId" in input) patch.riderId = optionalStringOrNull(input.riderId);
   if ("classId" in input) patch.classId = optionalStringOrNull(input.classId);
   if ("trainingId" in input) patch.trainingId = optionalStringOrNull(input.trainingId);
   if ("competitionId" in input) patch.competitionId = optionalStringOrNull(input.competitionId);
@@ -299,4 +390,79 @@ export const updateEvent = async (
 
 export const deleteEvent = async (centerId: string, eventId: string): Promise<void> => {
   await deleteDoc(eventDoc(centerId, eventId));
+};
+
+const normalizeCenterEventStatusFromClass = (classStatus: Class["status"]): Event["status"] => {
+  if (classStatus === "cancelled") return "CANCELLED";
+  if (classStatus === "completed") return "COMPLETED";
+  return "SCHEDULED";
+};
+
+export const createCenterEventFromClass = async (
+  centerId: string,
+  classData: Class,
+  classId: string
+): Promise<string> => {
+  return createEvent(centerId, {
+    title: classData.title,
+    description: classData.notes,
+    type: "CLASS",
+    sourceType: "class",
+    sourceId: classId,
+    status: normalizeCenterEventStatusFromClass(classData.status),
+    startAt: classData.startAt.toDate(),
+    endAt: classData.endAt.toDate(),
+    arenaId: classData.arenaId,
+    trainerId: classData.trainerId,
+    classId,
+    horseIds: classData.horseIds,
+    studentIds: classData.studentIds,
+    notes: classData.notes,
+  });
+};
+
+export const updateCenterEventFromClass = async (
+  centerId: string,
+  classData: Class,
+  classId: string
+): Promise<string> => {
+  const existing = await getEventBySource(centerId, "class", classId);
+  const payload: UpdateEventInput = {
+    title: classData.title,
+    description: classData.notes,
+    type: "CLASS",
+    sourceType: "class",
+    sourceId: classId,
+    status: normalizeCenterEventStatusFromClass(classData.status),
+    startAt: classData.startAt.toDate(),
+    endAt: classData.endAt.toDate(),
+    arenaId: classData.arenaId,
+    trainerId: classData.trainerId,
+    classId,
+    horseIds: classData.horseIds,
+    studentIds: classData.studentIds,
+    notes: classData.notes,
+  };
+
+  if (!existing) {
+    return createCenterEventFromClass(centerId, classData, classId);
+  }
+
+  await updateEvent(centerId, existing.id, payload);
+  return existing.id;
+};
+
+export const cancelCenterEventFromClass = async (
+  centerId: string,
+  classId: string
+): Promise<void> => {
+  const existing = await getEventBySource(centerId, "class", classId);
+  if (!existing) return;
+
+  await updateEvent(centerId, existing.id, {
+    status: "CANCELLED",
+    sourceType: "class",
+    sourceId: classId,
+    classId,
+  });
 };

@@ -96,8 +96,12 @@ export default function RegisterPage() {
       let centerId: string | null = null;
 
       if (role === "centerOwner") {
+        const normalizedCenterName = newCenterName.trim();
         const centerRef = await addDoc(collection(db, "centers"), {
-          name: newCenterName.trim(),
+          name: normalizedCenterName,
+          nameLower: normalizedCenterName.toLowerCase(),
+          isActive: true,
+          status: "active",
           ownerId: user.uid,
           createdAt: serverTimestamp(),
         });

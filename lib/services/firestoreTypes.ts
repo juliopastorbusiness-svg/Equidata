@@ -1,5 +1,14 @@
 import { Timestamp } from "firebase/firestore";
 import {
+  ArenaBookingSourceType,
+  ArenaBookingStatus,
+  CenterEventSourceType,
+  CenterMemberStatus,
+  CenterClassBookingMode,
+  CenterClassLevel,
+  CenterClassStatus,
+  CenterClassVisibility,
+  CenterStatus,
   AssignmentStatus,
   ClassLevel,
   ClassStatus,
@@ -18,7 +27,63 @@ import {
   TrainingIntensity,
   TrainingStatus,
   TreatmentStatus,
+  UserRole,
 } from "@/lib/services/types";
+
+export type FirestoreUserProfileDoc = {
+  uid?: string;
+  role?: UserRole | string | null;
+  fullName?: string | null;
+  name?: string | null;
+  displayName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  avatarUrl?: string | null;
+  linkedCenters?: string[] | null;
+  activeCenterId?: string | null;
+  centerId?: string | null;
+  proType?: string | null;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+};
+
+export type FirestoreCenterDoc = {
+  name?: string | null;
+  nameLower?: string | null;
+  slug?: string | null;
+  address?: string | null;
+  city?: string | null;
+  province?: string | null;
+  ownerId?: string | null;
+  ownerUid?: string | null;
+  isActive?: boolean | null;
+  status?: CenterStatus | string | null;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+};
+
+export type FirestoreCenterMemberDoc = {
+  userId?: string | null;
+  uid?: string | null;
+  role?: UserRole | string | null;
+  status?: CenterMemberStatus | string | null;
+  joinedAt?: Timestamp | null;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+};
+
+export type FirestoreArenaBookingDoc = {
+  arenaId: string;
+  sourceType: ArenaBookingSourceType | string;
+  sourceId: string;
+  title: string;
+  startAt: Timestamp;
+  endAt: Timestamp;
+  status: ArenaBookingStatus | string;
+  createdBy: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+};
 
 export type FirestorePaddockDoc = {
   name: string;
@@ -84,6 +149,8 @@ export type FirestoreEventDoc = {
   title: string;
   description?: string | null;
   type: EventType;
+  sourceType?: CenterEventSourceType | string | null;
+  sourceId?: string | null;
   status: EventStatus;
   date?: string | null;
   startTime?: string | null;
@@ -92,6 +159,7 @@ export type FirestoreEventDoc = {
   endAt: Timestamp;
   location?: string | null;
   arenaId?: string | null;
+  riderId?: string | null;
   classId?: string | null;
   trainingId?: string | null;
   competitionId?: string | null;
@@ -106,6 +174,9 @@ export type FirestoreEventDoc = {
 export type FirestoreClassDoc = {
   title: string;
   description?: string | null;
+  notes?: string | null;
+  discipline?: string | null;
+  level?: CenterClassLevel | string | null;
   date: Timestamp;
   startTime: string;
   endTime: string;
@@ -115,10 +186,14 @@ export type FirestoreClassDoc = {
   arenaId?: string | null;
   requiredLevel: ClassLevel;
   capacity: number;
+  availableSpots?: number | null;
   price?: number | null;
   startAt: Timestamp;
   endAt: Timestamp;
-  status: ClassStatus;
+  status: CenterClassStatus | ClassStatus | string;
+  visibility?: CenterClassVisibility | string | null;
+  bookingMode?: CenterClassBookingMode | string | null;
+  createdBy?: string | null;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };
@@ -170,11 +245,14 @@ export type FirestoreStudentDoc = {
 
 export type FirestoreClassReservationDoc = {
   classId: string;
-  studentId: string;
+  riderId?: string | null;
+  studentId?: string | null;
   reservedByUid?: string | null;
   status: ReservationStatus;
+  reservedAt?: Timestamp | null;
   reservationDate?: Timestamp | null;
   notes?: string | null;
+  paymentStatus?: PaymentStatus | null;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };

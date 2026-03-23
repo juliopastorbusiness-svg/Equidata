@@ -1,6 +1,5 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Cormorant_Garamond } from "next/font/google";
@@ -8,15 +7,6 @@ import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
-import {
-  getCompetitions,
-  getEventsByDateRange,
-  getMedicationInventory,
-  getPaddockAssignmentsByCenter,
-  getPaddocksByCenter,
-  getPayments,
-  getTrainings,
-} from "@/lib/services";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -28,18 +18,6 @@ type ModuleCardProps = {
   title: string;
   description: string;
   icon: string;
-};
-
-type WidgetData = {
-  paddockOccupancy: string;
-  horsesInPaddocks: number;
-  lowStockMedications: number;
-  expiringMedications: number;
-  classesToday: number;
-  trainingsToday: number;
-  upcomingCompetitions: number;
-  studentsWithPendingPayments: number;
-  agendaToday: number;
 };
 
 function ModuleCard({ href, title, description, icon }: ModuleCardProps) {
@@ -91,98 +69,6 @@ export default function CenterDashboardPage() {
     await signOut(auth);
     router.push("/login");
   };
-
-  const [widgets, setWidgets] = useState<WidgetData>({
-    paddockOccupancy: "0/0",
-    horsesInPaddocks: 0,
-    lowStockMedications: 0,
-    expiringMedications: 0,
-    classesToday: 0,
-    trainingsToday: 0,
-    upcomingCompetitions: 0,
-    studentsWithPendingPayments: 0,
-    agendaToday: 0,
-  });
-  const [widgetsLoading, setWidgetsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!activeCenterId) {
-      setWidgetsLoading(false);
-      setWidgets({
-        paddockOccupancy: "0/0",
-        horsesInPaddocks: 0,
-        lowStockMedications: 0,
-        expiringMedications: 0,
-        classesToday: 0,
-        trainingsToday: 0,
-        upcomingCompetitions: 0,
-        studentsWithPendingPayments: 0,
-        agendaToday: 0,
-      });
-      return;
-    }
-
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-    const upcomingLimit = new Date();
-    upcomingLimit.setDate(upcomingLimit.getDate() + 30);
-
-    setWidgetsLoading(true);
-    Promise.all([
-      getPaddocksByCenter(activeCenterId),
-      getPaddockAssignmentsByCenter(activeCenterId),
-      getMedicationInventory(activeCenterId),
-      getEventsByDateRange(activeCenterId, { start: todayStart, end: todayEnd }),
-      getTrainings(activeCenterId),
-      getCompetitions(activeCenterId),
-      getPayments(activeCenterId),
-    ])
-      .then(([
-        paddocks,
-        assignments,
-        medications,
-        todayEvents,
-        trainings,
-        competitions,
-        payments,
-      ]) => {
-        const activeAssignments = assignments.filter((item) => item.status === "ACTIVE");
-        const lowStockMedications = medications.filter((item) => item.lowStock).length;
-        const expiringMedications = medications.filter((item) => item.expiringSoon || item.expired).length;
-        const classesToday = todayEvents.filter((item) => item.type === "CLASS").length;
-        const trainingsToday = trainings.filter((item) => {
-          const date = item.date.toDate();
-          return date >= todayStart && date <= todayEnd;
-        }).length;
-        const upcomingCompetitions = competitions.filter((item) => {
-          const date = item.startDate.toDate();
-          return date >= todayStart && date <= upcomingLimit;
-        }).length;
-        const studentsWithPendingPayments = new Set(
-          payments
-            .filter((item) => item.status === "PENDING" || item.status === "PARTIAL" || item.status === "OVERDUE")
-            .map((item) => item.studentId)
-        ).size;
-
-        setWidgets({
-          paddockOccupancy: `${activeAssignments.length}/${paddocks.reduce((sum, item) => sum + item.maxCapacity, 0)}`,
-          horsesInPaddocks: activeAssignments.length,
-          lowStockMedications,
-          expiringMedications,
-          classesToday,
-          trainingsToday,
-          upcomingCompetitions,
-          studentsWithPendingPayments,
-          agendaToday: todayEvents.length,
-        });
-      })
-      .catch((loadError) => {
-        console.error(loadError);
-      })
-      .finally(() => setWidgetsLoading(false));
-  }, [activeCenterId]);
 
   if (loading) {
     return (
@@ -303,41 +189,6 @@ export default function CenterDashboardPage() {
           <>
             <section className="rounded-2xl border border-brand-border bg-white/50 p-4 sm:p-5">
               <div className="mb-4">
-                <h2 className="text-lg font-semibold text-brand-text">Widgets</h2>
-                <p className="text-sm text-brand-secondary">
-                  Estado operativo del centro para hoy.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {[
-                  ["Ocupacion paddocks", widgets.paddockOccupancy],
-                  ["Caballos en paddocks", String(widgets.horsesInPaddocks)],
-                  ["Medicamentos stock bajo", String(widgets.lowStockMedications)],
-                  ["Medicamentos caducando", String(widgets.expiringMedications)],
-                  ["Clases hoy", String(widgets.classesToday)],
-                  ["Entrenamientos hoy", String(widgets.trainingsToday)],
-                  ["Competiciones proximas", String(widgets.upcomingCompetitions)],
-                  ["Alumnos con pagos pendientes", String(widgets.studentsWithPendingPayments)],
-                  ["Agenda del dia", String(widgets.agendaToday)],
-                ].map(([label, value]) => (
-                  <article
-                    key={label}
-                    className="rounded-2xl border border-brand-border bg-white/80 p-4 shadow-sm"
-                  >
-                    <p className="text-xs uppercase tracking-wide text-brand-secondary">
-                      {label}
-                    </p>
-                    <p className="mt-2 text-3xl font-semibold text-brand-text">
-                      {widgetsLoading ? "..." : value}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-brand-border bg-white/50 p-4 sm:p-5">
-              <div className="mb-4">
                 <h2 className="text-lg font-semibold text-brand-text">Módulos</h2>
                 <p className="text-sm text-brand-secondary">
                   Accesos rápidos a la gestión operativa del centro.
@@ -389,10 +240,16 @@ export default function CenterDashboardPage() {
                     icon: "📅",
                   },
                   {
-                    href: "/dashboard/center/classes",
+                    href: "/dashboard/clases",
                     title: "Clases",
                     description: "Clases, alumnos, caballos y capacidad.",
                     icon: "🎓",
+                  },
+                  {
+                    href: "/dashboard/reservas",
+                    title: "Reservas",
+                    description: "Seguimiento de riders, estados y demanda por clase.",
+                    icon: "🧾",
                   },
                   {
                     href: "/dashboard/center/trainings",

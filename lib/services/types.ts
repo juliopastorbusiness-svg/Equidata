@@ -15,6 +15,7 @@ export type EventType =
   | "GENERAL"
   | "INTERNAL_TASK";
 export type EventStatus = "SCHEDULED" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
+export type CenterEventSourceType = "class" | "training" | "competition" | "manual";
 export type ClassLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "MIXED";
 export type ClassStatus = "DRAFT" | "PUBLISHED" | "CANCELLED" | "COMPLETED";
 export type TrainingStatus = "PLANNED" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
@@ -22,10 +23,66 @@ export type CompetitionStatus = "PLANNED" | "OPEN" | "CLOSED" | "CANCELLED" | "C
 export type TrainingIntensity = "LOW" | "MEDIUM" | "HIGH";
 export type StudentStatus = "ACTIVE" | "INACTIVE" | "LEAD";
 export type StudentLevel = "INITIATION" | "BASIC" | "INTERMEDIATE" | "ADVANCED" | "COMPETITION";
-export type ReservationStatus = "RESERVED" | "CONFIRMED" | "CANCELLED" | "COMPLETED" | "NO_SHOW";
+export type ClassReservationStatus = "pending" | "confirmed" | "cancelled" | "completed" | "no_show";
+export type LegacyReservationStatus = "RESERVED" | "CONFIRMED" | "CANCELLED" | "COMPLETED" | "NO_SHOW";
+export type ReservationStatus = ClassReservationStatus | LegacyReservationStatus;
 export type PaymentStatus = "PENDING" | "PARTIAL" | "PAID" | "CANCELLED" | "OVERDUE";
 export type PaymentType = "SINGLE_CLASS" | "PACK" | "MONTHLY" | "COMPETITION" | "OTHER";
 export type PaymentMethod = "CASH" | "TRANSFER" | "CARD" | "STRIPE";
+export type UserRole = "center_owner" | "center_staff" | "rider" | "pro";
+export type CenterStatus = "active" | "inactive";
+export type CenterMemberStatus = "pending" | "active" | "rejected";
+export type CenterClassLevel =
+  | "initiation"
+  | "basic"
+  | "intermediate"
+  | "advanced"
+  | "competition"
+  | "mixed";
+export type CenterClassStatus = "draft" | "published" | "full" | "cancelled" | "completed";
+export type CenterClassVisibility = "members_only" | "private";
+export type CenterClassBookingMode = "manual" | "request";
+export type ArenaBookingSourceType = "class" | "training" | "maintenance" | "internal_block";
+export type ArenaBookingStatus = "active" | "cancelled" | "completed";
+
+export type UserProfile = AuditFields & {
+  uid: string;
+  role: UserRole;
+  fullName: string;
+  email: string;
+  phone?: string;
+  avatarUrl?: string;
+  linkedCenters?: string[];
+  activeCenterId?: string;
+  displayName?: string;
+  name?: string;
+  centerId?: string | null;
+  proType?: string | null;
+};
+
+export type RiderProfile = UserProfile & {
+  role: "rider";
+};
+
+export type Center = AuditFields & {
+  id: string;
+  name: string;
+  slug: string;
+  address?: string;
+  city?: string;
+  province?: string;
+  ownerId: string;
+  status: CenterStatus;
+};
+
+export type CenterMember = AuditFields & {
+  id: string;
+  centerId: string;
+  userId: string;
+  role: UserRole;
+  status: CenterMemberStatus;
+  joinedAt?: Timestamp;
+};
 
 export type Paddock = AuditFields & {
   id: string;
@@ -87,47 +144,76 @@ export type HorseTreatment = AuditFields & {
   notes?: string;
 };
 
-export type Event = AuditFields & {
+export type CenterEvent = AuditFields & {
   id: string;
   centerId: string;
-  title: string;
-  description?: string;
   type: EventType;
+  sourceType: CenterEventSourceType;
+  sourceId: string;
+  title: string;
+  startAt: Timestamp;
+  endAt: Timestamp;
+  arenaId?: string;
+  trainerId?: string;
+  riderId?: string;
+  classId?: string;
   status: EventStatus;
+};
+
+export type Event = CenterEvent & {
+  description?: string;
   date: string;
   startTime: string;
   endTime: string;
-  startAt: Timestamp;
-  endAt: Timestamp;
   location?: string;
-  arenaId?: string;
-  classId?: string;
   trainingId?: string;
   competitionId?: string;
-  trainerId?: string;
   horseIds: string[];
   studentIds: string[];
   notes?: string;
 };
 
-export type Class = AuditFields & {
+export type CenterClass = AuditFields & {
   id: string;
   centerId: string;
   title: string;
+  discipline: string;
+  level: CenterClassLevel;
   description?: string;
   date: Timestamp;
   startTime: string;
   endTime: string;
+  startAt: Timestamp;
+  endAt: Timestamp;
   trainerId?: string;
   studentIds: string[];
   horseIds: string[];
   arenaId?: string;
   requiredLevel: ClassLevel;
   capacity: number;
+  availableSpots: number;
   price?: number;
+  status: CenterClassStatus;
+  legacyStatus?: ClassStatus;
+  notes?: string;
+  visibility: CenterClassVisibility;
+  bookingMode: CenterClassBookingMode;
+  createdBy: string;
+};
+
+export type Class = CenterClass;
+
+export type ArenaBooking = AuditFields & {
+  id: string;
+  centerId: string;
+  arenaId: string;
+  sourceType: ArenaBookingSourceType;
+  sourceId: string;
+  title: string;
   startAt: Timestamp;
   endAt: Timestamp;
-  status: ClassStatus;
+  status: ArenaBookingStatus;
+  createdBy: string;
 };
 
 export type Training = AuditFields & {
@@ -179,11 +265,15 @@ export type ClassReservation = AuditFields & {
   id: string;
   centerId: string;
   classId: string;
-  studentId: string;
+  riderId: string;
+  studentId?: string;
   reservedByUid?: string;
   status: ReservationStatus;
+  legacyStatus?: LegacyReservationStatus;
+  reservedAt?: Timestamp;
   reservationDate?: Timestamp;
   notes?: string;
+  paymentStatus?: PaymentStatus;
 };
 
 export type StudentPayment = AuditFields & {

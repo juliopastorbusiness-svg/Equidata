@@ -65,6 +65,7 @@ export const useRequireCenterRole = (
             : null;
 
         const preferred = pickPreferredCenterId(data, [
+          profile?.activeCenterId,
           profile?.centerId,
           localPreferred,
         ]);
@@ -86,7 +87,7 @@ export const useRequireCenterRole = (
     return () => {
       cancelled = true;
     };
-  }, [loadingAuth, user, profile?.centerId]);
+  }, [loadingAuth, user, profile?.activeCenterId, profile?.centerId]);
 
   const setActiveCenterId = (centerId: string) => {
     if (!user) return;

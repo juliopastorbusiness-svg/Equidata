@@ -13,12 +13,12 @@ import {
   createReservation,
   deletePayment,
   deleteReservation,
-  getClassById,
   getClasses,
   getPayments,
   getReservationById,
   getReservations,
   getStudentById,
+  ClassReservation,
   Student,
   StudentPayment,
   updatePayment,
@@ -54,7 +54,7 @@ export default function StudentDetailPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("summary");
   const [editingPayment, setEditingPayment] = useState<StudentPayment | null>(null);
   const [reservationClassId, setReservationClassId] = useState("");
-  const [reservationStatus, setReservationStatus] = useState<"RESERVED" | "CONFIRMED" | "CANCELLED" | "COMPLETED" | "NO_SHOW">("RESERVED");
+  const [reservationStatus, setReservationStatus] = useState<ClassReservation["status"]>("RESERVED");
   const [reservationNotes, setReservationNotes] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingReservation, setSavingReservation] = useState(false);
@@ -129,7 +129,7 @@ export default function StudentDetailPage() {
 
   const handleUpdateReservationStatus = async (
     reservation: Awaited<ReturnType<typeof getReservations>>[number],
-    status: "RESERVED" | "CONFIRMED" | "CANCELLED" | "COMPLETED" | "NO_SHOW"
+    status: ClassReservation["status"]
   ) => {
     if (!activeCenterId || !student) return;
     setError(null);
