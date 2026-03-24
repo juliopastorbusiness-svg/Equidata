@@ -90,4 +90,10 @@ export const centerDocument = <T extends DocumentData = DocumentData>(
   collectionName: string,
   docId: string
 ): DocumentReference<T> =>
-  doc(db, "centers", assertCenterId(centerId), collectionName, docId) as DocumentReference<T>;
+  doc(
+    db,
+    "centers",
+    assertCenterId(centerId),
+    collectionName,
+    assertRequiredString("docId", docId)
+  ) as DocumentReference<T>;

@@ -1,6 +1,8 @@
 "use client";
 
 import { auth, db } from "@/lib/firebase";
+import { FirestoreUserProfileDoc } from "@/lib/services/firestoreTypes";
+import { mapUserProfile } from "@/lib/services/mappers";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
@@ -36,7 +38,10 @@ export const useAuthUser = (): UseAuthUserState => {
       try {
         const userSnap = await getDoc(doc(db, "users", firebaseUser.uid));
         const profile = userSnap.exists()
-          ? (userSnap.data() as UserProfile)
+          ? mapUserProfile(
+              userSnap.id,
+              userSnap.data() as FirestoreUserProfileDoc
+            )
           : null;
 
         setState({
@@ -61,4 +66,3 @@ export const useAuthUser = (): UseAuthUserState => {
 
   return state;
 };
-

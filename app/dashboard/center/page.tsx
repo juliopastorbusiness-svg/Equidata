@@ -5,8 +5,10 @@ import Link from "next/link";
 import { Cormorant_Garamond } from "next/font/google";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
+import { getCenterMembers } from "@/lib/services/memberService";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -54,6 +56,8 @@ function ModuleCard({ href, title, description, icon }: ModuleCardProps) {
 
 export default function CenterDashboardPage() {
   const router = useRouter();
+  const [pendingRequests, setPendingRequests] = useState(0);
+  const [pendingRequestsLoading, setPendingRequestsLoading] = useState(false);
   const {
     loading,
     error,
@@ -69,6 +73,45 @@ export default function CenterDashboardPage() {
     await signOut(auth);
     router.push("/login");
   };
+
+  useEffect(() => {
+    if (!activeCenterId) {
+      setPendingRequests(0);
+      setPendingRequestsLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadPendingRequests = async () => {
+      setPendingRequestsLoading(true);
+
+      try {
+        const members = await getCenterMembers(activeCenterId);
+        if (!isMounted) return;
+
+        setPendingRequests(
+          members.filter(
+            (member) => member.role === "rider" && member.status === "pending"
+          ).length
+        );
+      } catch (loadError) {
+        console.error("No se pudieron cargar las solicitudes pendientes:", loadError);
+        if (!isMounted) return;
+        setPendingRequests(0);
+      } finally {
+        if (isMounted) {
+          setPendingRequestsLoading(false);
+        }
+      }
+    };
+
+    void loadPendingRequests();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeCenterId]);
 
   if (loading) {
     return (
@@ -156,6 +199,36 @@ export default function CenterDashboardPage() {
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {error}
           </p>
+        )}
+
+        {!!activeCenterId && (
+          <section className="rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-secondary">
+                  Solicitudes de acceso
+                </p>
+                <h2 className="mt-1 text-lg font-semibold text-brand-text">
+                  {pendingRequestsLoading
+                    ? "Revisando solicitudes pendientes..."
+                    : pendingRequests > 0
+                      ? `Tienes ${pendingRequests} solicitud${pendingRequests === 1 ? "" : "es"} pendiente${pendingRequests === 1 ? "" : "s"}`
+                      : "No hay solicitudes pendientes ahora mismo"}
+                </h2>
+                <p className="mt-1 text-sm text-brand-secondary">
+                  Revisa aqui las peticiones de riders y decide si quieres
+                  aceptarlas o denegarlas desde la ficha del centro.
+                </p>
+              </div>
+
+              <Link
+                href={`/centros/${activeCenterId}`}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-brand-border px-4 text-sm font-semibold text-brand-text transition hover:border-brand-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-brand-background"
+              >
+                Revisar solicitudes
+              </Link>
+            </div>
+          </section>
         )}
 
         {memberships.length > 1 && (

@@ -14,7 +14,11 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { mapCenterMember } from "@/lib/services/mappers";
-import { centerCollection, centerDocument } from "@/lib/services/shared";
+import {
+  assertRequiredString,
+  centerCollection,
+  centerDocument,
+} from "@/lib/services/shared";
 import { FirestoreCenterMemberDoc } from "@/lib/services/firestoreTypes";
 import { CenterMember, RiderProfile, UserProfile } from "@/lib/services/types";
 import { getCenterById } from "@/lib/services/centerService";
@@ -72,7 +76,12 @@ export const requestCenterLink = async (
     throw new Error("El centro no existe.");
   }
 
-  const memberRef = centerDocument<FirestoreCenterMemberDoc>(centerId, membersCollectionName, riderUser.uid);
+  const riderUid = assertRequiredString("uid", riderUser.uid);
+  const memberRef = centerDocument<FirestoreCenterMemberDoc>(
+    centerId,
+    membersCollectionName,
+    riderUid
+  );
   const existingSnap = await getDoc(memberRef);
 
   if (existingSnap.exists()) {
@@ -85,8 +94,8 @@ export const requestCenterLink = async (
   await setDoc(
     memberRef,
     {
-      userId: riderUser.uid,
-      uid: riderUser.uid,
+      userId: riderUid,
+      uid: riderUid,
       role: "rider",
       status: "pending",
       createdAt: existingSnap.exists() ? existingSnap.data().createdAt : serverTimestamp(),
@@ -111,6 +120,12 @@ export const approveCenterMember = async (
   }
 
   const current = mapCenterMember(currentSnap.id, currentSnap.data(), centerId);
+  const userRef = doc(db, "users", current.userId);
+  const userSnap = await getDoc(userRef);
+  const currentActiveCenterId =
+    userSnap.exists() && typeof userSnap.data().activeCenterId === "string"
+      ? userSnap.data().activeCenterId.trim()
+      : "";
 
   await updateDoc(memberRef, {
     status: "active",
@@ -118,8 +133,9 @@ export const approveCenterMember = async (
     updatedAt: serverTimestamp(),
   });
 
-  await updateDoc(doc(db, "users", current.userId), {
+  await updateDoc(userRef, {
     linkedCenters: arrayUnion(centerId),
+    activeCenterId: currentActiveCenterId || centerId,
     updatedAt: serverTimestamp(),
   });
 
