@@ -6,9 +6,12 @@ import { Cormorant_Garamond } from "next/font/google";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
 import { getCenterMembers } from "@/lib/services/memberService";
+import { MODULE_REGISTRY, ModuleId } from "@/lib/modules/moduleConfig";
+import { ModuleService } from "@/lib/services/moduleService";
+import { ManageModulesModal } from "@/components/dashboard/center/ManageModulesModal";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -58,6 +61,9 @@ export default function CenterDashboardPage() {
   const router = useRouter();
   const [pendingRequests, setPendingRequests] = useState(0);
   const [pendingRequestsLoading, setPendingRequestsLoading] = useState(false);
+  const [enabledModules, setEnabledModules] = useState<ModuleId[]>([]);
+  const [modulesLoading, setModulesLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const {
     loading,
     error,
@@ -113,7 +119,30 @@ export default function CenterDashboardPage() {
     };
   }, [activeCenterId]);
 
-  if (loading) {
+  // Cargar módulos habilitados
+  useEffect(() => {
+    if (!activeCenterId) {
+      setModulesLoading(false);
+      return;
+    }
+
+    const loadModules = async () => {
+      try {
+        const moduleService = new ModuleService(db);
+        const modules = await moduleService.getEnabledModules(activeCenterId);
+        setEnabledModules(modules);
+      } catch (error) {
+        console.error("Error cargando módulos:", error);
+        setEnabledModules([]);
+      } finally {
+        setModulesLoading(false);
+      }
+    };
+
+    loadModules();
+  }, [activeCenterId]);
+
+  if (loading || modulesLoading) {
     return (
       <main className="min-h-screen bg-brand-background p-6 text-brand-text">
         <p>Cargando dashboard del centro...</p>
@@ -159,11 +188,18 @@ export default function CenterDashboardPage() {
               {activeCenterName ?? "Centro"}
             </h1>
             <p className="text-center text-[10px] leading-4 text-brand-secondary sm:text-[11px] md:text-sm">
-              Panel del centro
+              Panel del centro • {enabledModules.length} módulo{enabledModules.length === 1 ? "" : "s"} activo{enabledModules.length === 1 ? "" : "s"}
             </p>
           </div>
 
-          <div className="flex items-center justify-end self-center">
+          <div className="flex items-center justify-end self-center gap-2">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-brand-border bg-white/80 text-brand-primary transition hover:border-brand-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-brand-background active:scale-[0.98] md:h-10 md:w-auto md:whitespace-nowrap md:rounded-xl md:border-transparent md:bg-brand-primary md:px-4 md:text-sm md:font-semibold md:text-white md:hover:bg-brand-primaryHover"
+            >
+              <span className="md:hidden">⚙️</span>
+              <span className="hidden md:inline">Gestionar Módulos</span>
+            </button>
             <button
               onClick={handleLogout}
               aria-label="Cerrar sesión"
@@ -268,96 +304,30 @@ export default function CenterDashboardPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {[
-                  {
-                    href: "/dashboard/center/billing",
-                    title: "Facturación",
-                    description: "Clientes, cobros y resumen mensual del centro.",
-                    icon: "💳",
-                  },
-                  {
-                    href: "/dashboard/center/feed",
-                    title: "Piensos",
-                    description: "Stock, consumos y control de alimento.",
-                    icon: "🌾",
-                  },
-                  {
-                    href: "/dashboard/center/arenas",
-                    title: "Pistas",
-                    description: "Reservas, estado y disponibilidad de pistas.",
-                    icon: "🏇",
-                  },
-                  {
-                    href: "/dashboard/center/stables",
-                    title: "Cuadras",
-                    description: "Ocupación, estancias y gestión de boxes.",
-                    icon: "🐴",
-                  },
-                  {
-                    href: "/dashboard/center/paddocks",
-                    title: "Paddocks",
-                    description: "Rotación, ocupación y gestión de prados.",
-                    icon: "🌿",
-                  },
-                  {
-                    href: "/dashboard/center/medications",
-                    title: "Medicamentos",
-                    description: "Inventario, stock y tratamientos por caballo.",
-                    icon: "💊",
-                  },
-                  {
-                    href: "/dashboard/center/agenda",
-                    title: "Agenda",
-                    description: "Calendario diario, semanal y mensual del centro.",
-                    icon: "📅",
-                  },
-                  {
-                    href: "/dashboard/clases",
-                    title: "Clases",
-                    description: "Clases, alumnos, caballos y capacidad.",
-                    icon: "🎓",
-                  },
-                  {
-                    href: "/dashboard/reservas",
-                    title: "Reservas",
-                    description: "Seguimiento de riders, estados y demanda por clase.",
-                    icon: "🧾",
-                  },
-                  {
-                    href: "/dashboard/center/trainings",
-                    title: "Entrenamientos",
-                    description: "Planificacion deportiva con control de solapes.",
-                    icon: "🏋️",
-                  },
-                  {
-                    href: "/dashboard/center/competitions",
-                    title: "Competiciones",
-                    description: "Calendario competitivo de caballos y jinetes.",
-                    icon: "🏆",
-                  },
-                  {
-                    href: "/dashboard/center/students",
-                    title: "Alumnos",
-                    description: "Fichas, reservas y pagos del area formativa.",
-                    icon: "🧑‍🎓",
-                  },
-                  {
-                    href: "/dashboard/center/tasks",
-                    title: "Tareas",
-                    description: "Plan diario y seguimiento del equipo.",
-                    icon: "✅",
-                  },
-                ].map((module) => (
-                  <ModuleCard
-                    key={module.href}
-                    href={module.href}
-                    title={module.title}
-                    description={module.description}
-                    icon={module.icon}
-                  />
-                ))}
-              </div>
+              {enabledModules.length === 0 ? (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
+                  <p className="text-yellow-800 font-semibold mb-2">
+                    No hay módulos activados
+                  </p>
+                  <p className="text-yellow-700 text-sm">
+                    Haz clic en "Gestionar Módulos" para activar funcionalidades
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  {Object.values(MODULE_REGISTRY)
+                    .filter((module) => enabledModules.includes(module.id))
+                    .map((module) => (
+                      <ModuleCard
+                        key={module.id}
+                        href={module.href}
+                        title={module.title}
+                        description={module.description}
+                        icon={module.icon}
+                      />
+                    ))}
+                </div>
+              )}
             </section>
 
             <details className="rounded-2xl border border-brand-border bg-white/70 shadow-sm">
@@ -403,6 +373,14 @@ export default function CenterDashboardPage() {
           </>
         )}
       </div>
+
+      {/* Modal de gestión de módulos */}
+      <ManageModulesModal
+        centerId={activeCenterId!}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={(modules) => setEnabledModules(modules)}
+      />
     </main>
   );
 }

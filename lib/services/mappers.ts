@@ -1,5 +1,8 @@
+import { Timestamp } from "firebase/firestore";
 import {
   FirestoreArenaBookingDoc,
+  FirestoreBillingCustomerDoc,
+  FirestoreBillingMovementDoc,
   FirestoreCenterDoc,
   FirestoreCenterMemberDoc,
   FirestoreClassDoc,
@@ -17,6 +20,8 @@ import {
 } from "@/lib/services/firestoreTypes";
 import {
   ArenaBooking,
+  BillingCustomer,
+  BillingMovement,
   Center,
   CenterEvent,
   CenterMember,
@@ -115,6 +120,33 @@ const normalizeArenaSourceType = (sourceType?: string | null): ArenaBooking["sou
   return "internal_block";
 };
 
+const normalizeBillingCustomerStatus = (
+  status?: string | null
+): BillingCustomer["financialStatus"] => {
+  if (status === "pending" || status === "paid" || status === "credit") {
+    return status;
+  }
+  return "paid";
+};
+
+const normalizeBillingMovementType = (
+  type?: string | null
+): BillingMovement["type"] => {
+  if (type === "expense" || type === "payment") {
+    return type;
+  }
+  return "expense";
+};
+
+const normalizeBillingPaymentMethod = (
+  value?: string | null
+): BillingMovement["paymentMethod"] => {
+  if (value === "cash" || value === "transfer" || value === "card" || value === "other") {
+    return value;
+  }
+  return undefined;
+};
+
 const normalizeCenterEventSourceType = (
   sourceType?: string | null
 ): CenterEvent["sourceType"] => {
@@ -199,6 +231,56 @@ export const mapCenterMember = (
       ? data.status
       : "pending",
   joinedAt: data.joinedAt ?? undefined,
+  createdAt: data.createdAt,
+  updatedAt: data.updatedAt,
+});
+
+export const mapBillingCustomer = (
+  id: string,
+  data: FirestoreBillingCustomerDoc,
+  centerId: string
+): BillingCustomer => ({
+  id,
+  centerId,
+  fullName: data.fullName?.trim() || id,
+  fullNameLower: data.fullNameLower?.trim() || data.fullName?.trim().toLowerCase() || id.toLowerCase(),
+  phone: data.phone?.trim() || undefined,
+  email: data.email?.trim() || undefined,
+  address: data.address?.trim() || undefined,
+  notes: data.notes?.trim() || undefined,
+  totalSpent: typeof data.totalSpent === "number" ? data.totalSpent : 0,
+  totalPaid: typeof data.totalPaid === "number" ? data.totalPaid : 0,
+  balance:
+    typeof data.balance === "number"
+      ? data.balance
+      : (typeof data.totalSpent === "number" ? data.totalSpent : 0) -
+        (typeof data.totalPaid === "number" ? data.totalPaid : 0),
+  financialStatus: normalizeBillingCustomerStatus(data.financialStatus),
+  lastMovementAt: data.lastMovementAt ?? undefined,
+  createdBy: data.createdBy?.trim() || "",
+  updatedBy: data.updatedBy?.trim() || undefined,
+  createdAt: data.createdAt,
+  updatedAt: data.updatedAt,
+});
+
+export const mapBillingMovement = (
+  id: string,
+  data: FirestoreBillingMovementDoc,
+  centerId: string,
+  customerId: string
+): BillingMovement => ({
+  id,
+  centerId,
+  customerId: data.customerId?.trim() || customerId,
+  type: normalizeBillingMovementType(data.type),
+  date: data.date ?? Timestamp.now(),
+  description: data.description?.trim() || id,
+  amount: typeof data.amount === "number" ? data.amount : 0,
+  notes: data.notes?.trim() || undefined,
+  paymentMethod: normalizeBillingPaymentMethod(data.paymentMethod),
+  reference: data.reference?.trim() || undefined,
+  createdBy: data.createdBy?.trim() || "",
+  updatedBy: data.updatedBy?.trim() || undefined,
   createdAt: data.createdAt,
   updatedAt: data.updatedAt,
 });

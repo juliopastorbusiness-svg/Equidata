@@ -1,5 +1,6 @@
 import { Timestamp } from "firebase/firestore";
 import { AuditFields } from "@/lib/services/shared";
+import type { ModuleId } from "@/lib/modules/moduleConfig";
 
 export type PaddockStatus = "AVAILABLE" | "OCCUPIED" | "MAINTENANCE" | "UNAVAILABLE";
 export type PaddockType = "INDIVIDUAL" | "SHARED" | "REST" | "REHABILITATION";
@@ -44,6 +45,9 @@ export type CenterClassVisibility = "members_only" | "private";
 export type CenterClassBookingMode = "manual" | "request";
 export type ArenaBookingSourceType = "class" | "training" | "maintenance" | "internal_block";
 export type ArenaBookingStatus = "active" | "cancelled" | "completed";
+export type BillingCustomerFinancialStatus = "pending" | "paid" | "credit";
+export type BillingMovementType = "expense" | "payment";
+export type BillingPaymentMethod = "cash" | "transfer" | "card" | "other";
 
 export type UserProfile = AuditFields & {
   uid: string;
@@ -73,6 +77,9 @@ export type Center = AuditFields & {
   province?: string;
   ownerId: string;
   status: CenterStatus;
+  
+  // ✨ NUEVO: Módulos habilitados para este centro
+  enabledModules?: ModuleId[];
 };
 
 export type CenterMember = AuditFields & {
@@ -288,6 +295,39 @@ export type StudentPayment = AuditFields & {
   paymentMethod: PaymentMethod;
   status: PaymentStatus;
   notes?: string;
+};
+
+export type BillingCustomer = AuditFields & {
+  id: string;
+  centerId: string;
+  fullName: string;
+  fullNameLower: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  notes?: string;
+  totalSpent: number;
+  totalPaid: number;
+  balance: number;
+  financialStatus: BillingCustomerFinancialStatus;
+  lastMovementAt?: Timestamp;
+  createdBy: string;
+  updatedBy?: string;
+};
+
+export type BillingMovement = AuditFields & {
+  id: string;
+  centerId: string;
+  customerId: string;
+  type: BillingMovementType;
+  date: Timestamp;
+  description: string;
+  amount: number;
+  notes?: string;
+  paymentMethod?: BillingPaymentMethod;
+  reference?: string;
+  createdBy: string;
+  updatedBy?: string;
 };
 
 export type DateRange = {

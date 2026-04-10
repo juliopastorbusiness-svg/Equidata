@@ -2,6 +2,9 @@ import { Timestamp } from "firebase/firestore";
 import {
   ArenaBookingSourceType,
   ArenaBookingStatus,
+  BillingCustomerFinancialStatus,
+  BillingMovementType,
+  BillingPaymentMethod,
   CenterEventSourceType,
   CenterMemberStatus,
   CenterClassBookingMode,
@@ -58,6 +61,10 @@ export type FirestoreCenterDoc = {
   ownerUid?: string | null;
   isActive?: boolean | null;
   status?: CenterStatus | string | null;
+  
+  // ✨ NUEVO: Array de módulos habilitados
+  enabledModules?: string[] | null; // string[] porque Firestore no soporta tipos de unión
+  
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };
@@ -68,6 +75,41 @@ export type FirestoreCenterMemberDoc = {
   role?: UserRole | string | null;
   status?: CenterMemberStatus | string | null;
   joinedAt?: Timestamp | null;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+};
+
+export type FirestoreBillingCustomerDoc = {
+  centerId?: string | null;
+  fullName?: string | null;
+  fullNameLower?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  totalSpent?: number | null;
+  totalPaid?: number | null;
+  balance?: number | null;
+  financialStatus?: BillingCustomerFinancialStatus | string | null;
+  lastMovementAt?: Timestamp | null;
+  createdBy?: string | null;
+  updatedBy?: string | null;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+};
+
+export type FirestoreBillingMovementDoc = {
+  centerId?: string | null;
+  customerId?: string | null;
+  type?: BillingMovementType | string | null;
+  date?: Timestamp | null;
+  description?: string | null;
+  amount?: number | null;
+  notes?: string | null;
+  paymentMethod?: BillingPaymentMethod | string | null;
+  reference?: string | null;
+  createdBy?: string | null;
+  updatedBy?: string | null;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };

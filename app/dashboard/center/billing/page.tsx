@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { CenterHeader } from "@/components/center/CenterHeader";
+import { BillingCustomersPanel } from "@/components/dashboard/billing/BillingCustomersPanel";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
+import { useModuleEnabled } from "@/lib/hooks/useModuleEnabled";
 import {
   addOneOffCharge,
   BillingPeriod,
@@ -32,7 +34,7 @@ import {
   updateExpense,
 } from "@/lib/firestore/billing";
 
-type BillingTab = "CLIENTS" | "SUMMARY" | "EXPENSES";
+type BillingTab = "PORTFOLIO" | "CLIENTS" | "SUMMARY" | "EXPENSES";
 type DetailTab = "CHARGES" | "PAYMENTS" | "ACTIVITY";
 type LedgerFilter = "ALL" | LedgerEntryType;
 
@@ -191,7 +193,13 @@ export default function CenterBillingPage() {
     setActiveCenterId,
   } = useRequireCenterRole(["CENTER_OWNER", "CENTER_ADMIN"]);
 
-  const [tab, setTab] = useState<BillingTab>("CLIENTS");
+  const {
+    isEnabled: isBillingModuleEnabled,
+    loading: moduleLoading,
+    error: moduleError,
+  } = useModuleEnabled(activeCenterId, "facturacion");
+
+  const [tab, setTab] = useState<BillingTab>("PORTFOLIO");
   const [periodInput, setPeriodInput] = useState<string>(toMonthInput(currentPeriod));
   const [summaryRange, setSummaryRange] = useState<6 | 12 | 24>(6);
   const [loading, setLoading] = useState(true);
@@ -536,7 +544,7 @@ export default function CenterBillingPage() {
     }
   };
 
-  if (guardLoading) {
+  if (guardLoading || moduleLoading) {
     return (
       <main className="min-h-screen bg-brand-background text-brand-text p-6">
         <p>Cargando permisos del centro...</p>
@@ -554,6 +562,39 @@ export default function CenterBillingPage() {
             className="mt-4 inline-flex h-11 items-center rounded-xl border border-brand-border px-4 text-sm font-semibold text-brand-text"
           >
             Volver a Centro
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (moduleError) {
+    return (
+      <main className="min-h-screen bg-brand-background text-brand-text p-6">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-red-900 bg-red-950/30 p-5">
+          <p className="text-red-300">No se pudo comprobar el acceso al módulo de Facturación.</p>
+          <p className="mt-2 text-sm text-red-200">{moduleError}</p>
+          <Link
+            href="/dashboard/center"
+            className="mt-4 inline-flex h-11 items-center rounded-xl border border-brand-border px-4 text-sm font-semibold text-brand-text"
+          >
+            Volver a Centro
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (activeCenterId && !isBillingModuleEnabled) {
+    return (
+      <main className="min-h-screen bg-brand-background text-brand-text p-6">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-yellow-900 bg-yellow-950/30 p-5">
+          <p className="text-yellow-300">El módulo de Facturación no está activado en este centro.</p>
+          <Link
+            href="/dashboard/center"
+            className="mt-4 inline-flex h-11 items-center rounded-xl border border-brand-border px-4 text-sm font-semibold text-brand-text"
+          >
+            Gestionar Módulos
           </Link>
         </div>
       </main>
@@ -678,6 +719,15 @@ export default function CenterBillingPage() {
               <div className="inline-flex rounded-lg border border-brand-border p-1">
                 <button
                   type="button"
+                  onClick={() => setTab("PORTFOLIO")}
+                  className={`rounded px-3 py-1 text-sm ${
+                    tab === "PORTFOLIO" ? "bg-brand-border text-brand-text" : "text-brand-secondary"
+                  }`}
+                >
+                  Cartera de clientes
+                </button>
+                <button
+                  type="button"
                   onClick={() => setTab("CLIENTS")}
                   className={`rounded px-3 py-1 text-sm ${
                     tab === "CLIENTS" ? "bg-brand-border text-brand-text" : "text-brand-secondary"
@@ -720,6 +770,8 @@ export default function CenterBillingPage() {
 
             {loading ? (
               <p className="text-sm text-brand-secondary">Cargando facturacion...</p>
+            ) : tab === "PORTFOLIO" ? (
+              <BillingCustomersPanel centerId={activeCenterId} />
             ) : tab === "CLIENTS" ? (
               clientRows.length === 0 ? (
                 <p className="text-sm text-brand-secondary">
@@ -1375,4 +1427,3 @@ export default function CenterBillingPage() {
     </main>
   );
 }
-
