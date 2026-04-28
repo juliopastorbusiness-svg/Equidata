@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import admin from 'firebase-admin';
 import { getAdminAuth, getAdminDb } from '@/lib/firebaseAdmin';
-import { BillingLimitError, getPlanLimits } from '@/lib/billing/limits';
+import { assertCanCreateHorse, BillingLimitError, getPlanLimits } from '@/lib/billing/limits';
 
 export const runtime = 'nodejs';
 
@@ -9,6 +9,7 @@ type CenterDoc = {
   ownerId?: string | null;
   ownerUid?: string | null;
   status?: string | null;
+  isActive?: boolean | null;
   planId?: string | null;
   subscriptionStatus?: string | null;
   stripeCustomerId?: string | null;
@@ -181,7 +182,7 @@ const normalizeHorsePayload = (payload: Record<string, unknown>) => {
 
 const isBillingActive = (center: CenterDoc): boolean => {
   const plan = getPlanLimits(center.planId);
-  if (!plan || center.status !== 'active') {
+  if (!plan || (center.status !== 'active' && center.isActive !== true)) {
     return false;
   }
 
@@ -213,6 +214,8 @@ export async function POST(request: NextRequest) {
     }
 
     const nextHorse = normalizeHorsePayload(body.horse);
+    await assertCanCreateHorse(centerId);
+
     const db = getAdminDb();
     const horseId = await db.runTransaction(async (transaction) => {
       const centerRef = db.collection('centers').doc(centerId);
@@ -229,15 +232,34 @@ export async function POST(request: NextRequest) {
         throw new BillingLimitError('PLAN_NOT_ACTIVE', 'Tu plan no esta activo.');
       }
 
-      const horseLimit = plan?.horseLimit ?? center.horseLimit ?? null;
+      const horseLimit =
+        typeof center.horseLimit === 'number'
+          ? center.horseLimit
+          : plan?.horseLimit ?? null;
+      const horsesSnap = await transaction.get(centerRef.collection('horses'));
+
       if (horseLimit !== null) {
-        const horsesSnap = await transaction.get(centerRef.collection('horses'));
+        const allowed = horsesSnap.size < horseLimit;
+        console.info('Horse limit transaction check', {
+          centerId,
+          horseLimit,
+          currentHorseCount: horsesSnap.size,
+          allowed,
+        });
+
         if (horsesSnap.size >= horseLimit) {
           throw new BillingLimitError(
             'HORSE_LIMIT_REACHED',
-            'Has alcanzado el limite de caballos de tu plan.'
+            'Has alcanzado el límite de caballos de tu plan.'
           );
         }
+      } else {
+        console.info('Horse limit transaction check', {
+          centerId,
+          horseLimit,
+          currentHorseCount: horsesSnap.size,
+          allowed: true,
+        });
       }
 
       const horseRef = centerRef.collection('horses').doc();

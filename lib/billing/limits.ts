@@ -40,6 +40,7 @@ export type CenterBillingState = {
 type CenterBillingDoc = {
   planId?: string | null;
   status?: string | null;
+  isActive?: boolean | null;
   subscriptionStatus?: string | null;
   stripeCustomerId?: string | null;
   stripePriceId?: string | null;
@@ -85,7 +86,7 @@ const normalizeModules = (value?: string[] | null): ModuleId[] => {
 };
 
 const isBillingActive = (center: CenterBillingDoc, planId: PlanId | null): boolean => {
-  if (!planId || center.status !== 'active') {
+  if (!planId || (center.status !== 'active' && center.isActive !== true)) {
     return false;
   }
 
@@ -110,6 +111,10 @@ export const getCenterBillingState = async (
   const plan = getPlanLimits(center.planId);
   const horseSnap = await db.collection('centers').doc(centerId).collection('horses').get();
   const enabledModules = normalizeModules(center.enabledModules);
+  const horseLimit =
+    typeof center.horseLimit === 'number'
+      ? center.horseLimit
+      : plan?.horseLimit ?? null;
 
   return {
     centerId,
@@ -117,7 +122,7 @@ export const getCenterBillingState = async (
     status: center.status ?? null,
     subscriptionStatus: center.subscriptionStatus ?? null,
     isActive: isBillingActive(center, plan?.planId ?? null),
-    horseLimit: plan?.horseLimit ?? center.horseLimit ?? null,
+    horseLimit,
     featureLimit: plan?.featureLimit ?? center.featureLimit ?? null,
     horseCount: horseSnap.size,
     enabledModules,
@@ -128,16 +133,35 @@ export const canCreateHorse = async (centerId: string): Promise<boolean> => {
   const billing = await getCenterBillingState(centerId);
 
   if (!billing.isActive) {
+    console.info('Horse limit check', {
+      centerId,
+      horseLimit: billing.horseLimit,
+      currentHorseCount: billing.horseCount,
+      allowed: false,
+    });
     return false;
   }
 
-  return billing.horseLimit === null || billing.horseCount < billing.horseLimit;
+  const allowed = billing.horseLimit === null || billing.horseCount < billing.horseLimit;
+  console.info('Horse limit check', {
+    centerId,
+    horseLimit: billing.horseLimit,
+    currentHorseCount: billing.horseCount,
+    allowed,
+  });
+  return allowed;
 };
 
 export const assertCanCreateHorse = async (centerId: string): Promise<void> => {
   const billing = await getCenterBillingState(centerId);
 
   if (!billing.isActive) {
+    console.info('Horse limit check', {
+      centerId,
+      horseLimit: billing.horseLimit,
+      currentHorseCount: billing.horseCount,
+      allowed: false,
+    });
     throw new BillingLimitError(
       'PLAN_NOT_ACTIVE',
       'Tu plan no esta activo.'
@@ -145,11 +169,24 @@ export const assertCanCreateHorse = async (centerId: string): Promise<void> => {
   }
 
   if (billing.horseLimit !== null && billing.horseCount >= billing.horseLimit) {
+    console.info('Horse limit check', {
+      centerId,
+      horseLimit: billing.horseLimit,
+      currentHorseCount: billing.horseCount,
+      allowed: false,
+    });
     throw new BillingLimitError(
       'HORSE_LIMIT_REACHED',
-      'Has alcanzado el limite de caballos de tu plan.'
+      'Has alcanzado el límite de caballos de tu plan.'
     );
   }
+
+  console.info('Horse limit check', {
+    centerId,
+    horseLimit: billing.horseLimit,
+    currentHorseCount: billing.horseCount,
+    allowed: true,
+  });
 };
 
 export const canEnableFeature = async (
