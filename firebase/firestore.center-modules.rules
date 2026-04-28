@@ -82,6 +82,21 @@ service cloud.firestore {
         request.resource.data.status in ["active", "inactive"];
     }
 
+    function protectedCenterFields() {
+      return [
+        "enabledModules",
+        "planId",
+        "subscriptionStatus",
+        "stripeCustomerId",
+        "stripeSubscriptionId",
+        "stripePriceId",
+        "currentPeriodEnd",
+        "horseLimit",
+        "featureLimit",
+        "billingUpdatedAt"
+      ];
+    }
+
     function isValidMember() {
       return request.resource.data.userId is string &&
         request.resource.data.role in ["center_owner", "center_staff", "rider", "pro", "CENTER_OWNER", "CENTER_ADMIN", "RIDER", "PRO"] &&
@@ -142,7 +157,9 @@ service cloud.firestore {
     match /centers/{centerId} {
       allow read: if canReadCenter(centerId);
       allow create: if isSignedIn() && isValidCenter();
-      allow update: if isCenterStaff(centerId) && isValidCenter();
+      allow update: if isCenterStaff(centerId) &&
+        isValidCenter() &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(protectedCenterFields());
       allow delete: if isCenterOwner(centerId);
 
       match /members/{memberId} {

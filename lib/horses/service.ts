@@ -19,8 +19,7 @@ import {
   ref,
   uploadBytes,
 } from "firebase/storage";
-import { db, storage } from "@/lib/firebase";
-import { assertCanCreateHorse } from "@/lib/billing/permissions";
+import { auth, db, storage } from "@/lib/firebase";
 import {
   FirestoreHorseAlertDoc,
   FirestoreHorseDoc,
@@ -378,23 +377,45 @@ export const createHorse = async (
   payload: CreateHorseInput
 ): Promise<string> => {
   const normalizedCenterId = assertId("centerId", centerId);
-  await assertCanCreateHorse(normalizedCenterId);
   const nextHorse = normalizeHorseWrite(payload);
 
   if (!nextHorse.name) {
     throw new Error("El nombre del caballo es obligatorio.");
   }
 
-  const docRef = await addDoc(centerHorseCollection(normalizedCenterId), {
-    ...nextHorse,
-    status: nextHorse.status ?? "ACTIVE",
-    sex: nextHorse.sex ?? "UNKNOWN",
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+  const token = await auth.currentUser?.getIdToken();
+  if (!token) {
+    throw new Error("Debes iniciar sesion para crear caballos.");
+  }
+
+  const response = await fetch("/api/center/horses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      centerId: normalizedCenterId,
+      horse: {
+        ...nextHorse,
+        status: nextHorse.status ?? "ACTIVE",
+        sex: nextHorse.sex ?? "UNKNOWN",
+      },
+    }),
   });
 
-  await recalculateHorseAlerts(normalizedCenterId, docRef.id);
-  return docRef.id;
+  const data = (await response.json()) as {
+    horseId?: string;
+    error?: string;
+    code?: string;
+  };
+
+  if (!response.ok || !data.horseId) {
+    throw new Error(data.error || "No se pudo crear el caballo.");
+  }
+
+  await recalculateHorseAlerts(normalizedCenterId, data.horseId);
+  return data.horseId;
 };
 
 export const updateHorse = async (

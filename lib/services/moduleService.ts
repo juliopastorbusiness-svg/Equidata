@@ -1,27 +1,56 @@
+import { doc, Firestore, getDoc } from "firebase/firestore";
+import { auth } from "@/lib/firebase";
 import {
-  doc,
-  getDoc,
-  updateDoc,
-  Firestore,
-} from "firebase/firestore";
-import {
-  ModuleId,
   DEFAULT_ENABLED_MODULES,
-  validateModuleSet,
-  getModuleDependencies,
-  getAllDependentModules,
+  ModuleId,
 } from "@/lib/modules/moduleConfig";
-import { assertCanEnableFeature, getCenterSubscription } from "@/lib/billing/permissions";
+
+type ModuleMutationResult = {
+  success: boolean;
+  modules?: ModuleId[];
+  activated?: ModuleId[];
+  disabled?: ModuleId[];
+  affectedModules?: ModuleId[];
+  error?: string;
+};
 
 /**
- * Servicio para gestionar módulos habilitados en un centro
+ * Servicio para gestionar modulos habilitados en un centro.
+ * Las mutaciones pasan por API backend para aplicar limites reales del plan.
  */
 export class ModuleService {
   constructor(private firestore: Firestore) {}
 
-  /**
-   * Obtener módulos habilitados de un centro
-   */
+  private async patchModules(payload: Record<string, unknown>): Promise<ModuleMutationResult> {
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "Debes iniciar sesion para gestionar modulos.",
+      };
+    }
+
+    const response = await fetch("/api/center/modules", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = (await response.json()) as ModuleMutationResult;
+
+    return {
+      success: response.ok && data.success === true,
+      modules: data.modules,
+      activated: data.activated,
+      disabled: data.disabled,
+      affectedModules: data.affectedModules,
+      error: data.error,
+    };
+  }
+
   async getEnabledModules(centerId: string): Promise<ModuleId[]> {
     try {
       const centerRef = doc(this.firestore, "centers", centerId);
@@ -34,15 +63,11 @@ export class ModuleService {
       const center = centerDoc.data() as { enabledModules?: ModuleId[] };
       return center.enabledModules || DEFAULT_ENABLED_MODULES;
     } catch (error) {
-      console.error("Error obteniendo módulos:", error);
-      return DEFAULT_ENABLED_MODULES; // Fallback seguro
+      console.error("Error obteniendo modulos:", error);
+      return DEFAULT_ENABLED_MODULES;
     }
   }
 
-  /**
-   * Habilitar un módulo (respetando dependencias)
-   * Retorna: módulos que se activarán
-   */
   async enableModule(
     centerId: string,
     moduleId: ModuleId,
@@ -52,72 +77,20 @@ export class ModuleService {
     activated: ModuleId[];
     error?: string;
   }> {
-    try {
-      const current = await this.getEnabledModules(centerId);
+    const result = await this.patchModules({
+      action: "enable",
+      centerId,
+      moduleId,
+      autoActivateDependencies,
+    });
 
-      if (current.includes(moduleId)) {
-        return { success: true, activated: [] }; // Ya está activo
-      }
-
-      await assertCanEnableFeature(centerId, moduleId);
-
-      // Obtener dependencias del módulo
-      const dependencies = getModuleDependencies(moduleId);
-
-      let toActivate: ModuleId[] = [moduleId];
-
-      if (autoActivateDependencies) {
-        // Activar dependencias automáticamente
-        const missingDeps = dependencies.filter((dep) => !current.includes(dep));
-        toActivate = [...new Set([...current, moduleId, ...missingDeps])];
-      } else {
-        // Solo activar si las dependencias ya existen
-        const hasMissingDeps = dependencies.some((dep) => !current.includes(dep));
-        if (hasMissingDeps) {
-          const missing = dependencies
-            .filter((dep) => !current.includes(dep))
-            .map((m) => m);
-          return {
-            success: false,
-            activated: [],
-            error: `Este módulo requiere: ${missing.join(", ")}`,
-          };
-        }
-        toActivate = [...new Set([...current, moduleId])];
-      }
-
-      // Validar que el conjunto resultante es válido
-      const validation = validateModuleSet(toActivate);
-      if (!validation.valid) {
-        return {
-          success: false,
-          activated: [],
-          error: validation.errors.join("; "),
-        };
-      }
-
-      // Actualizar en Firestore
-      const centerRef = doc(this.firestore, "centers", centerId);
-      await updateDoc(centerRef, {
-        enabledModules: toActivate,
-        updatedAt: new Date(),
-      });
-
-      const activated = toActivate.filter((m) => !current.includes(m));
-
-      return { success: true, activated };
-    } catch (error) {
-      return {
-        success: false,
-        activated: [],
-        error: error instanceof Error ? error.message : "Error desconocido",
-      };
-    }
+    return {
+      success: result.success,
+      activated: result.activated ?? [],
+      error: result.error,
+    };
   }
 
-  /**
-   * Desactivar un módulo (con advertencia de dependientes)
-   */
   async disableModule(
     centerId: string,
     moduleId: ModuleId,
@@ -125,111 +98,41 @@ export class ModuleService {
   ): Promise<{
     success: boolean;
     disabled: ModuleId[];
-    affectedModules?: ModuleId[]; // Módulos que también se desactivarán
+    affectedModules?: ModuleId[];
     error?: string;
   }> {
-    try {
-      const current = await this.getEnabledModules(centerId);
+    const result = await this.patchModules({
+      action: "disable",
+      centerId,
+      moduleId,
+      force,
+    });
 
-      if (!current.includes(moduleId)) {
-        return { success: true, disabled: [] }; // Ya está desactivo
-      }
-
-      // Importar función para obtener módulos dependientes
-      const affected = getAllDependentModules(moduleId);
-      const affectedEnabled = affected.filter((m) => current.includes(m));
-
-      if (affectedEnabled.length > 0 && !force) {
-        return {
-          success: false,
-          disabled: [],
-          affectedModules: affectedEnabled,
-          error: `Si desactivas este módulo, también se verán afectados: ${affectedEnabled.join(", ")}`,
-        };
-      }
-
-      // Desactivar el módulo y sus dependientes (si force=true)
-      const toDisable = force ? [moduleId, ...affectedEnabled] : [moduleId];
-      const updated = current.filter((m) => !toDisable.includes(m));
-
-      // Validar que el conjunto resultante es válido
-      const validation = validateModuleSet(updated);
-      if (!validation.valid) {
-        return {
-          success: false,
-          disabled: [],
-          error: validation.errors.join("; "),
-        };
-      }
-
-      // Actualizar en Firestore
-      const centerRef = doc(this.firestore, "centers", centerId);
-      await updateDoc(centerRef, {
-        enabledModules: updated,
-        updatedAt: new Date(),
-      });
-
-      return {
-        success: true,
-        disabled: toDisable,
-        affectedModules: force ? affectedEnabled : undefined,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        disabled: [],
-        error: error instanceof Error ? error.message : "Error desconocido",
-      };
-    }
+    return {
+      success: result.success,
+      disabled: result.disabled ?? [],
+      affectedModules: result.affectedModules,
+      error: result.error,
+    };
   }
 
-  /**
-   * Establecer múltiples módulos de una vez (reemplaza toda la lista)
-   */
   async setEnabledModules(
     centerId: string,
     moduleIds: ModuleId[]
   ): Promise<{ success: boolean; error?: string }> {
-    try {
-      // Validar que el conjunto es válido
-      const validation = validateModuleSet(moduleIds);
-      if (!validation.valid) {
-        return {
-          success: false,
-          error: validation.errors.join("; "),
-        };
-      }
+    const result = await this.patchModules({
+      action: "set",
+      centerId,
+      moduleIds,
+    });
 
-      const subscription = await getCenterSubscription(centerId);
-      if (subscription.featureLimit !== null && moduleIds.length > subscription.featureLimit) {
-        return {
-          success: false,
-          error: `Este plan permite activar hasta ${subscription.featureLimit} funcionalidades.`,
-        };
-      }
-
-      const centerRef = doc(this.firestore, "centers", centerId);
-      await updateDoc(centerRef, {
-        enabledModules: moduleIds,
-        updatedAt: new Date(),
-      });
-
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Error desconocido",
-      };
-    }
+    return {
+      success: result.success,
+      error: result.error,
+    };
   }
 
-  /**
-   * Inicializar módulos para un nuevo centro
-   */
   async initializeModulesForNewCenter(centerId: string): Promise<void> {
-    const centerRef = doc(this.firestore, "centers", centerId);
-    await updateDoc(centerRef, {
-      enabledModules: DEFAULT_ENABLED_MODULES,
-    });
+    await this.setEnabledModules(centerId, DEFAULT_ENABLED_MODULES);
   }
 }

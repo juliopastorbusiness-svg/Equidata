@@ -25,6 +25,26 @@ type ModuleCardProps = {
   icon: string;
 };
 
+type BillingState = {
+  planId: "basic" | "pro" | "unlimited" | null;
+  status: string | null;
+  subscriptionStatus: string | null;
+  isActive: boolean;
+  horseLimit: number | null;
+  featureLimit: number | null;
+  horseCount: number;
+  enabledModules: ModuleId[];
+};
+
+const planLabels: Record<"basic" | "pro" | "unlimited", string> = {
+  basic: "Basic",
+  pro: "Pro",
+  unlimited: "Unlimited",
+};
+
+const limitLabel = (used: number, limit: number | null): string =>
+  limit === null ? `${used} / Ilimitado` : `${used} / ${limit}`;
+
 function ModuleCard({ href, title, description, icon }: ModuleCardProps) {
   return (
     <Link
@@ -63,6 +83,9 @@ export default function CenterDashboardPage() {
   const [pendingRequestsLoading, setPendingRequestsLoading] = useState(false);
   const [enabledModules, setEnabledModules] = useState<ModuleId[]>([]);
   const [modulesLoading, setModulesLoading] = useState(true);
+  const [billingState, setBillingState] = useState<BillingState | null>(null);
+  const [billingLoading, setBillingLoading] = useState(true);
+  const [billingError, setBillingError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const {
     loading,
@@ -113,6 +136,59 @@ export default function CenterDashboardPage() {
     };
 
     void loadPendingRequests();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeCenterId]);
+
+  useEffect(() => {
+    if (!activeCenterId) {
+      setBillingState(null);
+      setBillingLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadBillingState = async () => {
+      setBillingLoading(true);
+      setBillingError(null);
+
+      try {
+        const token = await auth.currentUser?.getIdToken();
+        if (!token) {
+          throw new Error("No hay sesion activa.");
+        }
+
+        const response = await fetch("/api/center/billing-state", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = (await response.json()) as BillingState & { error?: string };
+        if (!response.ok) {
+          throw new Error(data.error || "No se pudo cargar el estado del plan.");
+        }
+
+        if (isMounted) {
+          setBillingState(data);
+        }
+      } catch (loadError) {
+        console.error("No se pudo cargar el estado del plan:", loadError);
+        if (isMounted) {
+          setBillingError("No se pudo cargar el estado del plan.");
+          setBillingState(null);
+        }
+      } finally {
+        if (isMounted) {
+          setBillingLoading(false);
+        }
+      }
+    };
+
+    void loadBillingState();
 
     return () => {
       isMounted = false;
@@ -235,6 +311,58 @@ export default function CenterDashboardPage() {
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {error}
           </p>
+        )}
+
+        {!!activeCenterId && (
+          <section className="rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-secondary">
+                  Plan actual
+                </p>
+                <h2 className="mt-1 text-lg font-semibold text-brand-text">
+                  {billingLoading
+                    ? "Cargando estado del plan..."
+                    : billingState?.planId
+                      ? planLabels[billingState.planId]
+                      : "Sin plan activo"}
+                </h2>
+                <p className="mt-1 text-sm text-brand-secondary">
+                  {billingError
+                    ? billingError
+                    : billingState?.isActive
+                      ? "Estado: activo"
+                      : "Estado: pendiente o inactivo"}
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-brand-border bg-brand-background/70 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase text-brand-secondary">
+                    Caballos
+                  </p>
+                  <p className="mt-1 text-base font-semibold text-brand-text">
+                    {billingState
+                      ? limitLabel(billingState.horseCount, billingState.horseLimit)
+                      : "-"}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-brand-border bg-brand-background/70 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase text-brand-secondary">
+                    Funcionalidades
+                  </p>
+                  <p className="mt-1 text-base font-semibold text-brand-text">
+                    {billingState
+                      ? limitLabel(
+                          billingState.enabledModules.length,
+                          billingState.featureLimit
+                        )
+                      : "-"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
         )}
 
         {!!activeCenterId && (
@@ -379,7 +507,12 @@ export default function CenterDashboardPage() {
         centerId={activeCenterId!}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={(modules) => setEnabledModules(modules)}
+        onSave={(modules) => {
+          setEnabledModules(modules);
+          setBillingState((current) =>
+            current ? { ...current, enabledModules: modules } : current
+          );
+        }}
       />
     </main>
   );

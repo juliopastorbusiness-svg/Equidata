@@ -96,9 +96,7 @@ service cloud.firestore {
 
     match /centers/{centerId}/horses/{horseId} {
       allow read: if canReadHorse(centerId, horseId);
-      allow create: if canWriteHorse(centerId) &&
-        request.resource.data.keys().hasAll(["name", "status", "sex"]) &&
-        horsePayloadValid();
+      allow create: if false;
       allow update: if canWriteHorse(centerId) && horsePayloadValid();
       allow delete: if canWriteHorse(centerId);
 
