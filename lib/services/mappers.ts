@@ -40,6 +40,7 @@ import {
   Training,
   UserProfile,
 } from "@/lib/services/types";
+import { ModuleId, MODULE_REGISTRY } from "@/lib/modules/moduleConfig";
 import { optionalStringArray } from "@/lib/services/shared";
 
 const slugify = (value: string) =>
@@ -57,6 +58,11 @@ const normalizeUserRole = (role?: string | null): UserProfile["role"] => {
   if (role === "pro" || role === "rider") return role;
   return "rider";
 };
+
+const normalizeModuleIds = (value?: string[] | null): ModuleId[] =>
+  optionalStringArray(value).filter((moduleId): moduleId is ModuleId =>
+    moduleId in MODULE_REGISTRY
+  );
 
 const normalizeClassLevel = (level?: string | null): CenterClass["level"] => {
   if (
@@ -234,7 +240,7 @@ export const mapCenter = (id: string, data: FirestoreCenterDoc): Center => ({
     data.status === "inactive" || data.isActive === false
       ? "inactive"
       : "active",
-  enabledModules: optionalStringArray(data.enabledModules),
+  enabledModules: normalizeModuleIds(data.enabledModules),
   planId: data.planId?.trim() || null,
   subscriptionStatus: normalizeSubscriptionStatus(data.subscriptionStatus),
   stripeCustomerId: data.stripeCustomerId?.trim() || null,
