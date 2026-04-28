@@ -10,13 +10,43 @@ Proyecto Next.js (App Router + TypeScript) con Firebase Auth, Firestore y Storag
 npm install
 ```
 
-2. Inicia el servidor:
+2. Configura variables de entorno:
+
+Copia `.env.example` a `.env.local` y configura:
+
+- Firebase: Obtén las claves de tu proyecto Firebase.
+- Stripe: Crea una cuenta en Stripe y obtén las claves.
+
+3. Inicia el servidor:
 
 ```bash
 npm run dev
 ```
 
-3. Abre `http://localhost:3000`.
+4. Abre `http://localhost:3000`.
+
+## Configuración de Pagos (Stripe)
+
+1. Crea una cuenta en [Stripe](https://stripe.com).
+
+2. Obtén las claves API:
+   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+   - `STRIPE_SECRET_KEY`
+
+3. Configura webhook:
+   - URL: `https://tu-dominio.com/api/webhooks/stripe`
+   - Eventos: `checkout.session.completed`, `invoice.payment_succeeded`, `invoice.payment_failed`, `customer.subscription.deleted`
+   - Obtén el `STRIPE_WEBHOOK_SECRET`
+
+4. Agrega las variables a `.env.local`.
+
+## Planes de Suscripción
+
+- **Básico**: $24.99/mes - Hasta 20 caballos, 3 módulos.
+- **Profesional**: $49.99/mes - Hasta 50 caballos, todas las funcionalidades.
+- **Ilimitado**: $79.99/mes - Caballos ilimitados, todas las funcionalidades.
+
+Los límites se verifican en `lib/utils/planLimits.ts`.
 
 ## Rutas principales
 

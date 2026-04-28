@@ -20,6 +20,7 @@ import {
   uploadBytes,
 } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
+import { assertCanCreateHorse } from "@/lib/billing/permissions";
 import {
   FirestoreHorseAlertDoc,
   FirestoreHorseDoc,
@@ -377,6 +378,7 @@ export const createHorse = async (
   payload: CreateHorseInput
 ): Promise<string> => {
   const normalizedCenterId = assertId("centerId", centerId);
+  await assertCanCreateHorse(normalizedCenterId);
   const nextHorse = normalizeHorseWrite(payload);
 
   if (!nextHorse.name) {

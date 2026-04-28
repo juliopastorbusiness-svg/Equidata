@@ -7,6 +7,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { addDoc, collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { signInWithGoogle } from "@/lib/auth/googleSignIn";
+import { PLAN_CONFIG, PlanConfig } from "@/lib/billing/plans";
 
 type Role = "rider" | "centerOwner" | "pro";
 type ProType = "vet" | "farrier" | "other";
@@ -28,6 +29,8 @@ export default function RegisterPage() {
   const [selectedCenterId, setSelectedCenterId] = useState<string>("");
   const [newCenterName, setNewCenterName] = useState("");
   const [proType, setProType] = useState<ProType>("vet");
+
+  const [selectedPlan, setSelectedPlan] = useState<PlanConfig | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -82,6 +85,10 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
+      if (role === "centerOwner" && !selectedPlan) {
+        throw new Error("Debes seleccionar un plan.");
+      }
+
       if (role === "rider" && centers.length > 0 && !selectedCenterId) {
         throw new Error("Debes seleccionar un centro hipico.");
       }
@@ -103,7 +110,17 @@ export default function RegisterPage() {
           isActive: true,
           status: "active",
           ownerId: user.uid,
+          planId: null,
+          subscriptionStatus: "incomplete",
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          stripePriceId: null,
+          currentPeriodEnd: null,
+          horseLimit: null,
+          featureLimit: null,
+          billingUpdatedAt: null,
           createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
         });
         centerId = centerRef.id;
       }
@@ -123,13 +140,40 @@ export default function RegisterPage() {
       await setDoc(doc(db, "users", user.uid), {
         email,
         displayName: name,
-        role,
+        role: role === "centerOwner" ? "center_owner" : role,
         proType: role === "pro" ? proType : null,
         centerId,
+        activeCenterId: centerId,
+        linkedCenters: centerId ? [centerId] : [],
+        planId: selectedPlan?.id || null,
+        subscriptionStatus: selectedPlan ? "incomplete" : null,
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
 
-      router.push("/login");
+      if (selectedPlan && centerId) {
+        const token = await user.getIdToken();
+        const response = await fetch('/api/stripe/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            centerId,
+            planId: selectedPlan.id,
+          }),
+        });
+
+        const { url, error: sessionError } = await response.json();
+        if (url) {
+          window.location.href = url;
+        } else {
+          throw new Error(sessionError || "Error al crear la sesión de pago");
+        }
+      } else {
+        router.push("/login");
+      }
     } catch (err: unknown) {
       console.error(err);
       if (err instanceof Error) {
@@ -292,6 +336,31 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {role === "centerOwner" && (
+              <div className="space-y-2 rounded-xl border border-brand-border bg-white/60 p-3">
+                <p className="text-sm font-semibold text-brand-text">Selecciona un plan</p>
+                <div className="grid gap-2">
+                  {PLAN_CONFIG.map((plan) => (
+                    <label key={plan.id} className="flex items-center gap-2 p-2 rounded-lg border border-brand-border bg-white/50 hover:bg-white/70">
+                      <input
+                        type="radio"
+                        name="plan"
+                        value={plan.id}
+                        checked={selectedPlan?.id === plan.id}
+                        onChange={() => setSelectedPlan(plan)}
+                      />
+                      <div className="flex-1">
+                        <div className="font-semibold">{plan.name} - €{plan.price}/{plan.interval}</div>
+                        <div className="text-xs text-brand-secondary">
+                          {plan.horseLimit === null ? 'Caballos ilimitados' : `Hasta ${plan.horseLimit} caballos`} · {plan.featureLimit === null ? 'Todas las funcionalidades' : `${plan.featureLimit} funcionalidades`}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {role === "rider" && (
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-brand-text">
@@ -358,7 +427,7 @@ export default function RegisterPage() {
               disabled={loading}
               className="h-12 w-full rounded-xl bg-brand-primary px-4 text-base font-semibold text-white transition hover:bg-brand-primaryHover disabled:opacity-60"
             >
-              {loading ? "Creando cuenta..." : "Crear cuenta"}
+              {loading ? "Creando cuenta..." : role === "centerOwner" ? "Crear cuenta y proceder al pago" : "Crear cuenta"}
             </button>
 
             <button
@@ -380,5 +449,4 @@ export default function RegisterPage() {
     </main>
   );
 }
-
 

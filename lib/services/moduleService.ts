@@ -1,9 +1,7 @@
 import {
   doc,
   getDoc,
-  setDoc,
   updateDoc,
-  writeBatch,
   Firestore,
 } from "firebase/firestore";
 import {
@@ -13,7 +11,7 @@ import {
   getModuleDependencies,
   getAllDependentModules,
 } from "@/lib/modules/moduleConfig";
-import type { Center } from "./types";
+import { assertCanEnableFeature, getCenterSubscription } from "@/lib/billing/permissions";
 
 /**
  * Servicio para gestionar módulos habilitados en un centro
@@ -33,7 +31,7 @@ export class ModuleService {
         throw new Error(`Centro ${centerId} no existe`);
       }
 
-      const center = centerDoc.data() as any;
+      const center = centerDoc.data() as { enabledModules?: ModuleId[] };
       return center.enabledModules || DEFAULT_ENABLED_MODULES;
     } catch (error) {
       console.error("Error obteniendo módulos:", error);
@@ -60,6 +58,8 @@ export class ModuleService {
       if (current.includes(moduleId)) {
         return { success: true, activated: [] }; // Ya está activo
       }
+
+      await assertCanEnableFeature(centerId, moduleId);
 
       // Obtener dependencias del módulo
       const dependencies = getModuleDependencies(moduleId);
@@ -197,6 +197,14 @@ export class ModuleService {
         return {
           success: false,
           error: validation.errors.join("; "),
+        };
+      }
+
+      const subscription = await getCenterSubscription(centerId);
+      if (subscription.featureLimit !== null && moduleIds.length > subscription.featureLimit) {
+        return {
+          success: false,
+          error: `Este plan permite activar hasta ${subscription.featureLimit} funcionalidades.`,
         };
       }
 

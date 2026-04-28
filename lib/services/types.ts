@@ -32,6 +32,14 @@ export type PaymentType = "SINGLE_CLASS" | "PACK" | "MONTHLY" | "COMPETITION" | 
 export type PaymentMethod = "CASH" | "TRANSFER" | "CARD" | "STRIPE";
 export type UserRole = "center_owner" | "center_staff" | "rider" | "pro";
 export type CenterStatus = "active" | "inactive";
+export type SubscriptionStatus =
+  | "active"
+  | "trialing"
+  | "past_due"
+  | "canceled"
+  | "unpaid"
+  | "incomplete"
+  | "incomplete_expired";
 export type CenterMemberStatus = "pending" | "active" | "rejected";
 export type CenterClassLevel =
   | "initiation"
@@ -62,6 +70,8 @@ export type UserProfile = AuditFields & {
   name?: string;
   centerId?: string | null;
   proType?: string | null;
+  planId?: string | null;
+  subscriptionStatus?: SubscriptionStatus | null;
 };
 
 export type RiderProfile = UserProfile & {
@@ -78,8 +88,16 @@ export type Center = AuditFields & {
   ownerId: string;
   status: CenterStatus;
   
-  // ✨ NUEVO: Módulos habilitados para este centro
   enabledModules?: ModuleId[];
+  planId?: string | null;
+  subscriptionStatus?: SubscriptionStatus | null;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  stripePriceId?: string | null;
+  currentPeriodEnd?: Date | null;
+  horseLimit?: number | null;
+  featureLimit?: number | null;
+  billingUpdatedAt?: Date | null;
 };
 
 export type CenterMember = AuditFields & {

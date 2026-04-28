@@ -27,6 +27,7 @@ import {
   ReservationStatus,
   StudentLevel,
   StudentStatus,
+  SubscriptionStatus,
   TrainingIntensity,
   TrainingStatus,
   TreatmentStatus,
@@ -46,6 +47,8 @@ export type FirestoreUserProfileDoc = {
   activeCenterId?: string | null;
   centerId?: string | null;
   proType?: string | null;
+  planId?: string | null;
+  subscriptionStatus?: SubscriptionStatus | string | null;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };
@@ -62,8 +65,16 @@ export type FirestoreCenterDoc = {
   isActive?: boolean | null;
   status?: CenterStatus | string | null;
   
-  // ✨ NUEVO: Array de módulos habilitados
   enabledModules?: string[] | null; // string[] porque Firestore no soporta tipos de unión
+  planId?: string | null;
+  subscriptionStatus?: SubscriptionStatus | string | null;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  stripePriceId?: string | null;
+  currentPeriodEnd?: Timestamp | null;
+  horseLimit?: number | null;
+  featureLimit?: number | null;
+  billingUpdatedAt?: Timestamp | null;
   
   createdAt?: Timestamp;
   updatedAt?: Timestamp;

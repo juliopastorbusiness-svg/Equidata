@@ -36,6 +36,7 @@ import {
   PaddockAssignment,
   Student,
   StudentPayment,
+  SubscriptionStatus,
   Training,
   UserProfile,
 } from "@/lib/services/types";
@@ -179,6 +180,24 @@ const normalizeReservationStatus = (status?: string | null): ClassReservation["s
   return "pending";
 };
 
+const normalizeSubscriptionStatus = (
+  status?: string | null
+): SubscriptionStatus | null => {
+  if (
+    status === "active" ||
+    status === "trialing" ||
+    status === "past_due" ||
+    status === "canceled" ||
+    status === "unpaid" ||
+    status === "incomplete" ||
+    status === "incomplete_expired"
+  ) {
+    return status;
+  }
+
+  return null;
+};
+
 export const mapUserProfile = (id: string, data: FirestoreUserProfileDoc): UserProfile => ({
   uid: data.uid?.trim() || id,
   role: normalizeUserRole(data.role),
@@ -197,6 +216,8 @@ export const mapUserProfile = (id: string, data: FirestoreUserProfileDoc): UserP
   name: data.name?.trim() || undefined,
   centerId: data.centerId?.trim() || null,
   proType: data.proType?.trim() || null,
+  planId: data.planId?.trim() || null,
+  subscriptionStatus: normalizeSubscriptionStatus(data.subscriptionStatus),
   createdAt: data.createdAt,
   updatedAt: data.updatedAt,
 });
@@ -213,6 +234,16 @@ export const mapCenter = (id: string, data: FirestoreCenterDoc): Center => ({
     data.status === "inactive" || data.isActive === false
       ? "inactive"
       : "active",
+  enabledModules: optionalStringArray(data.enabledModules),
+  planId: data.planId?.trim() || null,
+  subscriptionStatus: normalizeSubscriptionStatus(data.subscriptionStatus),
+  stripeCustomerId: data.stripeCustomerId?.trim() || null,
+  stripeSubscriptionId: data.stripeSubscriptionId?.trim() || null,
+  stripePriceId: data.stripePriceId?.trim() || null,
+  currentPeriodEnd: data.currentPeriodEnd?.toDate() ?? null,
+  horseLimit: typeof data.horseLimit === "number" ? data.horseLimit : null,
+  featureLimit: typeof data.featureLimit === "number" ? data.featureLimit : null,
+  billingUpdatedAt: data.billingUpdatedAt?.toDate() ?? null,
   createdAt: data.createdAt,
   updatedAt: data.updatedAt,
 });
