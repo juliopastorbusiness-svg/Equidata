@@ -2,6 +2,26 @@ import admin from 'firebase-admin';
 
 let adminApp: admin.app.App | null = null;
 
+const normalizePrivateKey = (value?: string): string | undefined => {
+  if (!value) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  const withoutWrappingQuotes =
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+      ? trimmed.slice(1, -1)
+      : trimmed;
+
+  const normalized = withoutWrappingQuotes
+    .replace(/\\\\n/g, '\n')
+    .replace(/\\n/g, '\n')
+    .replace(/\r\n/g, '\n');
+
+  return normalized.includes('-----BEGIN PRIVATE KEY-----') ? normalized : undefined;
+};
+
 const getAdminApp = () => {
   if (adminApp) {
     return adminApp;
@@ -9,7 +29,7 @@ const getAdminApp = () => {
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const privateKey = normalizePrivateKey(process.env.FIREBASE_PRIVATE_KEY);
 
   if (!projectId || !clientEmail || !privateKey) {
     throw new Error(
