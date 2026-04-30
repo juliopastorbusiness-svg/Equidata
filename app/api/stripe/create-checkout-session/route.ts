@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getAdminAuth, getAdminDb } from '@/lib/firebaseAdmin';
-import { getPlanById } from '@/lib/billing/plans';
+import { getPlanById, PRICE_MAP } from '@/lib/billing/plans';
 
 export const runtime = 'nodejs';
 
@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
     if (!plan) {
       return NextResponse.json({ error: 'Plan invalido.' }, { status: 400 });
     }
+    const stripePriceId = PRICE_MAP[plan.id];
 
     const centerRef = getAdminDb().collection('centers').doc(centerId);
     const centerSnap = await centerRef.get();
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
       mode: 'subscription',
       line_items: [
         {
-          price: plan.stripePriceId,
+          price: stripePriceId,
           quantity: 1,
         },
       ],

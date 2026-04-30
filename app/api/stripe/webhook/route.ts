@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getAdminDb } from '@/lib/firebaseAdmin';
-import { getPlanByPriceId } from '@/lib/billing/plans';
+import { mapPriceToPlan } from '@/lib/billing/plans';
 
 export const runtime = 'nodejs';
 
@@ -16,8 +16,12 @@ type StripeMetadata = {
 };
 
 const updateCenterFromSubscription = async (subscription: Stripe.Subscription) => {
-  const stripePriceId = subscription.items.data[0]?.price?.id ?? null;
-  const plan = stripePriceId ? getPlanByPriceId(stripePriceId) : undefined;
+  const stripePriceId = subscription.items.data[0]?.price?.id;
+  if (!stripePriceId) {
+    throw new Error(`PRICE_NOT_FOUND: ${subscription.id}`);
+  }
+
+  const plan = mapPriceToPlan(stripePriceId);
   const centerId = subscription.metadata?.centerId;
 
   if (!centerId) {
@@ -37,9 +41,11 @@ const updateCenterFromSubscription = async (subscription: Stripe.Subscription) =
       ? subscription.customer
       : subscription.customer?.id || null;
   const currentPeriodEndTimestamp = subscription.items.data[0]?.current_period_end ?? null;
+  const isActiveSubscription = subscription.status === 'active' || subscription.status === 'trialing';
 
   await centerRef.update({
-    planId: plan?.id || null,
+    planId: plan.planId,
+    status: isActiveSubscription ? 'active' : 'inactive',
     subscriptionStatus: subscription.status,
     stripeCustomerId: customerId,
     stripeSubscriptionId: subscription.id,
@@ -47,8 +53,8 @@ const updateCenterFromSubscription = async (subscription: Stripe.Subscription) =
     currentPeriodEnd: currentPeriodEndTimestamp
       ? new Date(currentPeriodEndTimestamp * 1000)
       : null,
-    horseLimit: plan?.horseLimit ?? null,
-    featureLimit: plan?.featureLimit ?? null,
+    horseLimit: plan.horseLimit,
+    featureLimit: plan.featureLimit,
     billingUpdatedAt: new Date(),
   });
 };
