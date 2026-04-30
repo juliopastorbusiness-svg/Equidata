@@ -34,6 +34,7 @@ type BillingState = {
   featureLimit: number | null;
   horseCount: number;
   enabledModules: ModuleId[];
+  currentPeriodEnd: string | null;
 };
 
 const planLabels: Record<"basic" | "pro" | "unlimited", string> = {
@@ -86,6 +87,8 @@ export default function CenterDashboardPage() {
   const [billingState, setBillingState] = useState<BillingState | null>(null);
   const [billingLoading, setBillingLoading] = useState(true);
   const [billingError, setBillingError] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const {
     loading,
@@ -101,6 +104,37 @@ export default function CenterDashboardPage() {
   const handleLogout = async () => {
     await signOut(auth);
     router.push("/login");
+  };
+
+  const openCustomerPortal = async () => {
+    setPortalLoading(true);
+    setPortalError(null);
+
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        throw new Error("No hay sesion activa.");
+      }
+
+      const response = await fetch("/api/stripe/create-customer-portal-session", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = (await response.json()) as { url?: string; error?: string };
+      if (!response.ok || !data.url) {
+        throw new Error(data.error || "No se pudo abrir el portal de facturacion.");
+      }
+
+      window.location.href = data.url;
+    } catch (openError) {
+      console.error("No se pudo abrir el portal de facturacion:", openError);
+      setPortalError("No se pudo abrir el portal de facturación.");
+    } finally {
+      setPortalLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -334,32 +368,45 @@ export default function CenterDashboardPage() {
                       ? "Estado: activo"
                       : "Estado: pendiente o inactivo"}
                 </p>
+                {portalError && (
+                  <p className="mt-2 text-sm text-red-700">{portalError}</p>
+                )}
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-brand-border bg-brand-background/70 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase text-brand-secondary">
-                    Caballos
-                  </p>
-                  <p className="mt-1 text-base font-semibold text-brand-text">
-                    {billingState
-                      ? limitLabel(billingState.horseCount, billingState.horseLimit)
-                      : "-"}
-                  </p>
+              <div className="flex flex-col gap-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-brand-border bg-brand-background/70 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase text-brand-secondary">
+                      Caballos
+                    </p>
+                    <p className="mt-1 text-base font-semibold text-brand-text">
+                      {billingState
+                        ? limitLabel(billingState.horseCount, billingState.horseLimit)
+                        : "-"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-brand-border bg-brand-background/70 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase text-brand-secondary">
+                      Funcionalidades
+                    </p>
+                    <p className="mt-1 text-base font-semibold text-brand-text">
+                      {billingState
+                        ? limitLabel(
+                            billingState.enabledModules.length,
+                            billingState.featureLimit
+                          )
+                        : "-"}
+                    </p>
+                  </div>
                 </div>
-                <div className="rounded-xl border border-brand-border bg-brand-background/70 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase text-brand-secondary">
-                    Funcionalidades
-                  </p>
-                  <p className="mt-1 text-base font-semibold text-brand-text">
-                    {billingState
-                      ? limitLabel(
-                          billingState.enabledModules.length,
-                          billingState.featureLimit
-                        )
-                      : "-"}
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={openCustomerPortal}
+                  disabled={portalLoading}
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-brand-primary px-4 text-sm font-semibold text-white transition hover:bg-brand-primaryHover disabled:opacity-60"
+                >
+                  {portalLoading ? "Abriendo portal de facturación..." : "Gestionar suscripción"}
+                </button>
               </div>
             </div>
           </section>

@@ -35,6 +35,7 @@ export type CenterBillingState = {
   featureLimit: number | null;
   horseCount: number;
   enabledModules: ModuleId[];
+  currentPeriodEnd: Date | null;
 };
 
 type CenterBillingDoc = {
@@ -44,6 +45,7 @@ type CenterBillingDoc = {
   subscriptionStatus?: string | null;
   stripeCustomerId?: string | null;
   stripePriceId?: string | null;
+  currentPeriodEnd?: FirebaseFirestore.Timestamp | Date | null;
   horseLimit?: number | null;
   featureLimit?: number | null;
   enabledModules?: string[] | null;
@@ -126,6 +128,11 @@ export const getCenterBillingState = async (
     featureLimit: plan?.featureLimit ?? center.featureLimit ?? null,
     horseCount: horseSnap.size,
     enabledModules,
+    currentPeriodEnd: center.currentPeriodEnd
+      ? center.currentPeriodEnd instanceof Date
+        ? center.currentPeriodEnd
+        : center.currentPeriodEnd.toDate()
+      : null,
   };
 };
 
