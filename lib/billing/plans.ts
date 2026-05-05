@@ -18,9 +18,9 @@ export type StripePlanMapping = {
 };
 
 export const PRICE_MAP: Record<PlanId, string> = {
-  basic: 'price_1TRGMnQt1IK85UUT0ozQTxxl',
-  pro: 'price_1TRGMnQt1IK85UUTxlzlQJd5',
-  unlimited: 'price_1TRGMnQt1IK85UUTYlOv7cgy',
+  basic: 'price_1TQt96Qt1IK85UUT8VFwgqFV',
+  pro: 'price_1TQt9yQt1IK85UUTY8qKBMZf',
+  unlimited: 'price_1TQtB0Qt1IK85UUTGCmueBQd',
 };
 
 export const PLAN_CONFIG: PlanConfig[] = [
