@@ -469,10 +469,24 @@ export default function CenterBillingPage() {
       return;
     }
 
-    void refreshData(activeCenterId, false);
     void loadBillingState();
+
+    if (moduleLoading) {
+      return;
+    }
+
+    if (!isBillingModuleEnabled) {
+      setClientRows([]);
+      setSummaryRows([]);
+      setExpensesRows([]);
+      setLedgerRows([]);
+      setLoading(false);
+      return;
+    }
+
+    void refreshData(activeCenterId, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCenterId, periodInput, summaryRange]);
+  }, [activeCenterId, periodInput, summaryRange, moduleLoading, isBillingModuleEnabled]);
 
   const onOpenDetail = async (row: MonthlyClientBreakdownRow) => {
     if (!activeCenterId) return;
@@ -650,7 +664,7 @@ export default function CenterBillingPage() {
     }
   };
 
-  if (guardLoading || moduleLoading) {
+  if (guardLoading) {
     return (
       <main className="min-h-screen bg-brand-background text-brand-text p-6">
         <p>Cargando permisos del centro...</p>
@@ -674,7 +688,7 @@ export default function CenterBillingPage() {
     );
   }
 
-  if (moduleError) {
+  if (moduleError === "__render_inline__") {
     return (
       <main className="min-h-screen bg-brand-background text-brand-text p-6">
         <div className="mx-auto max-w-3xl rounded-2xl border border-red-900 bg-red-950/30 p-5">
@@ -691,7 +705,7 @@ export default function CenterBillingPage() {
     );
   }
 
-  if (activeCenterId && !isBillingModuleEnabled) {
+  if (activeCenterId && !isBillingModuleEnabled && moduleError === "__render_inline__") {
     return (
       <main className="min-h-screen bg-brand-background text-brand-text p-6">
         <div className="mx-auto max-w-3xl rounded-2xl border border-yellow-900 bg-yellow-950/30 p-5">
@@ -710,11 +724,11 @@ export default function CenterBillingPage() {
   return (
     <main className="min-h-screen bg-brand-background text-brand-text">
       <CenterHeader
-        title="Facturación"
+        title="Mi plan"
         subtitle={`Centro activo: ${activeCenterName ?? "Sin centro activo"}`}
         backHref="/dashboard/center"
-        primaryActionLabel="Generar cargos del mes"
-        onPrimaryAction={onGenerateMonthCharges}
+        primaryActionLabel={isBillingModuleEnabled ? "Generar cargos del mes" : undefined}
+        onPrimaryAction={isBillingModuleEnabled ? onGenerateMonthCharges : undefined}
       />
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
         {guardError && (
@@ -736,6 +750,21 @@ export default function CenterBillingPage() {
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {portalError}
           </p>
+        )}
+        {moduleError && (
+          <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
+            No se pudo comprobar el acceso al módulo de facturación: {moduleError}
+          </p>
+        )}
+        {activeCenterId && moduleLoading && (
+          <p className="rounded-xl border border-brand-border bg-white/60 p-3 text-sm text-brand-secondary">
+            Comprobando módulo de facturación...
+          </p>
+        )}
+        {activeCenterId && !moduleLoading && !moduleError && !isBillingModuleEnabled && (
+          <section className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+            El módulo de facturación no está activado en este centro. La gestión del plan sigue disponible arriba; para activar facturación operativa vuelve al panel y abre Gestionar módulos.
+          </section>
         )}
 
       {memberships.length > 1 && (
@@ -817,6 +846,8 @@ export default function CenterBillingPage() {
             </div>
           </section>
 
+          {isBillingModuleEnabled && (
+          <>
           <section className="rounded-2xl border border-brand-border bg-white/60 p-4 space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -1192,10 +1223,12 @@ export default function CenterBillingPage() {
               </div>
             )}
           </section>
+          </>
+          )}
         </>
       )}
 
-      {detailOpen && selectedClient && (
+      {isBillingModuleEnabled && detailOpen && selectedClient && (
         <div className="fixed inset-0 z-50 flex justify-end bg-brand-background/60">
           <aside className="h-full w-full max-w-3xl overflow-y-auto border-l border-brand-border bg-brand-background p-4 space-y-4">
             <div className="flex items-center justify-between gap-3">
@@ -1491,7 +1524,7 @@ export default function CenterBillingPage() {
         </div>
       )}
 
-      {movementsOpen && activeCenterId && (
+      {isBillingModuleEnabled && movementsOpen && activeCenterId && (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-brand-background/60 p-4 md:items-center">
           <div className="flex max-h-[90vh] w-full max-w-5xl flex-col rounded-2xl border border-brand-border bg-brand-background">
             <div className="flex items-center justify-between gap-3 border-b border-brand-border p-4">
