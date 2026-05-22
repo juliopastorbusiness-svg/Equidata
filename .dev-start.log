@@ -4,7 +4,31 @@
 
    ▲ Next.js 16.0.7 (webpack)
    - Local:         http://localhost:3000
-   - Network:       http://192.168.31.201:3000
+   - Network:       http://192.168.1.143:3000
 
  ✓ Starting...
- ✓ Ready in 3.4s
+ ✓ Ready in 3.1s
+ ○ Compiling / ...
+ GET / 200 in 4.2s (compile: 3.9s, render: 317ms)
+ GET / 200 in 205ms (compile: 136ms, render: 70ms)
+ GET / 200 in 34ms (compile: 8ms, render: 25ms)
+ GET /register 200 in 1835ms (compile: 1774ms, render: 60ms)
+ GET /login 200 in 637ms (compile: 581ms, render: 56ms)
+ GET /dashboard/center 200 in 1326ms (compile: 1266ms, render: 60ms)
+ GET /dashboard/center 200 in 249ms (compile: 177ms, render: 72ms)
+ GET /dashboard/center 200 in 544ms (compile: 13ms, render: 531ms)
+ GET /login 200 in 60ms (compile: 22ms, render: 38ms)
+ GET /register 200 in 59ms (compile: 25ms, render: 34ms)
+ GET / 200 in 51ms (compile: 20ms, render: 31ms)
+ GET / 200 in 174ms (compile: 130ms, render: 44ms)
+ GET / 200 in 210ms (compile: 146ms, render: 64ms)
+ GET / 200 in 85ms (compile: 56ms, render: 29ms)
+ GET / 200 in 230ms (compile: 8ms, render: 223ms)
+ GET / 200 in 168ms (compile: 124ms, render: 44ms)
+ GET / 200 in 188ms (compile: 137ms, render: 51ms)
+ GET / 200 in 102ms (compile: 74ms, render: 28ms)
+ GET / 200 in 139ms (compile: 101ms, render: 38ms)
+ GET / 200 in 1902ms (compile: 1633ms, render: 269ms)
+ GET / 200 in 100ms (compile: 10ms, render: 90ms)
+ GET / 200 in 94ms (compile: 7ms, render: 87ms)
+ GET / 200 in 272ms (compile: 85ms, render: 187ms)
