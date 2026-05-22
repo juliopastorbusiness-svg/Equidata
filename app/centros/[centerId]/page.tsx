@@ -147,15 +147,15 @@ export default function CenterDetailPage() {
           </p>
         ) : null}
 
-        <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-          <article className="rounded-3xl border border-brand-border bg-white/80 p-6 shadow-sm">
-            <h2 className="text-lg font-semibold">Vinculacion</h2>
-            <p className="mt-2 text-sm text-brand-secondary">
+        <section className="grid gap-5 lg:grid-cols-[0.72fr_1.28fr]">
+          <article className="self-start rounded-2xl border border-brand-border bg-white/80 p-4 shadow-sm">
+            <h2 className="text-base font-semibold">Vinculacion</h2>
+            <p className="mt-1 text-sm text-brand-secondary">
               Solicita acceso como rider o activa este centro si ya estas aceptado.
             </p>
 
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <span className="rounded-full border border-brand-border bg-brand-background px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-brand-secondary">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-brand-border bg-brand-background px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-secondary">
                 {currentMember?.status ?? "no vinculado"}
               </span>
               <CenterLinkRequestButton
@@ -168,85 +168,67 @@ export default function CenterDetailPage() {
               />
             </div>
 
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-brand-border bg-brand-background p-4">
-                <p className="text-sm text-brand-secondary">Miembros aceptados</p>
-                <p className="mt-2 text-3xl font-semibold">{acceptedMembers.length}</p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <div className="rounded-xl border border-brand-border bg-brand-background px-3 py-2.5">
+                <p className="text-xs text-brand-secondary">Miembros aceptados</p>
+                <p className="mt-1 text-xl font-semibold">{acceptedMembers.length}</p>
               </div>
-              <div className="rounded-2xl border border-brand-border bg-brand-background p-4">
-                <p className="text-sm text-brand-secondary">Solicitudes pendientes</p>
-                <p className="mt-2 text-3xl font-semibold">{pendingMembers.length}</p>
+              <div className="rounded-xl border border-brand-border bg-brand-background px-3 py-2.5">
+                <p className="text-xs text-brand-secondary">Solicitudes pendientes</p>
+                <p className="mt-1 text-xl font-semibold">{pendingMembers.length}</p>
               </div>
             </div>
           </article>
 
-          <article className="rounded-3xl border border-brand-border bg-white/80 p-6 shadow-sm">
-            <h2 className="text-lg font-semibold">Resumen</h2>
-            <dl className="mt-4 grid gap-4 text-sm">
-              <div className="rounded-2xl border border-brand-border bg-brand-background p-4">
-                <dt className="text-brand-secondary">Slug</dt>
-                <dd className="mt-1 font-medium">{center.slug}</dd>
+          {canManageMembers ? (
+            <article className="self-start rounded-2xl border border-brand-border bg-white/80 p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-base font-semibold">Solicitudes de acceso</h2>
+                  <p className="mt-1 text-sm text-brand-secondary">
+                    Gestion basica de riders y otros perfiles asociados al centro.
+                  </p>
+                </div>
               </div>
-              <div className="rounded-2xl border border-brand-border bg-brand-background p-4">
-                <dt className="text-brand-secondary">Owner</dt>
-                <dd className="mt-1 font-medium">{center.ownerId}</dd>
-              </div>
-              <div className="rounded-2xl border border-brand-border bg-brand-background p-4">
-                <dt className="text-brand-secondary">Mi estado</dt>
-                <dd className="mt-1 font-medium">{currentMember?.status ?? "Sin relacion"}</dd>
-              </div>
-            </dl>
-          </article>
+
+              {!pendingMembers.length ? (
+                <p className="mt-4 text-sm text-brand-secondary">No hay solicitudes pendientes.</p>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {pendingMembers.map((member) => (
+                    <article
+                      key={member.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border bg-brand-background p-3"
+                    >
+                      <div>
+                        <p className="font-medium">{member.userId}</p>
+                        <p className="text-sm text-brand-secondary">Rol solicitado: {member.role}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handleDecision(member.id, "approve")}
+                          disabled={actionLoadingId === member.id}
+                          className="inline-flex h-9 items-center rounded-xl bg-emerald-600 px-3 text-sm font-semibold text-white disabled:opacity-60"
+                        >
+                          Aprobar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDecision(member.id, "reject")}
+                          disabled={actionLoadingId === member.id}
+                          className="inline-flex h-9 items-center rounded-xl border border-rose-300 px-3 text-sm font-semibold text-rose-700 disabled:opacity-60"
+                        >
+                          Rechazar
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </article>
+          ) : null}
         </section>
-
-        {canManageMembers ? (
-          <section className="rounded-3xl border border-brand-border bg-white/80 p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold">Solicitudes de acceso</h2>
-                <p className="mt-2 text-sm text-brand-secondary">
-                  Gestion basica de riders y otros perfiles asociados al centro.
-                </p>
-              </div>
-            </div>
-
-            {!pendingMembers.length ? (
-              <p className="mt-5 text-sm text-brand-secondary">No hay solicitudes pendientes.</p>
-            ) : (
-              <div className="mt-5 space-y-3">
-                {pendingMembers.map((member) => (
-                  <article
-                    key={member.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-border bg-brand-background p-4"
-                  >
-                    <div>
-                      <p className="font-medium">{member.userId}</p>
-                      <p className="text-sm text-brand-secondary">Rol solicitado: {member.role}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void handleDecision(member.id, "approve")}
-                        disabled={actionLoadingId === member.id}
-                        className="inline-flex h-10 items-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-60"
-                      >
-                        Aprobar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDecision(member.id, "reject")}
-                        disabled={actionLoadingId === member.id}
-                        className="inline-flex h-10 items-center rounded-xl border border-rose-300 px-4 text-sm font-semibold text-rose-700 disabled:opacity-60"
-                      >
-                        Rechazar
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-        ) : null}
       </div>
     </main>
   );

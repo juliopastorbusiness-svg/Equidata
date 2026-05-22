@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
-import { getCenterMembers } from "@/lib/services/memberService";
 import { MODULE_REGISTRY, ModuleId } from "@/lib/modules/moduleConfig";
 import { ModuleService } from "@/lib/services/moduleService";
 import { ManageModulesModal } from "@/components/dashboard/center/ManageModulesModal";
@@ -25,27 +24,6 @@ type ModuleCardProps = {
   description: string;
   icon: string;
 };
-
-type BillingState = {
-  planId: "basic" | "pro" | "unlimited" | null;
-  status: string | null;
-  subscriptionStatus: string | null;
-  isActive: boolean;
-  horseLimit: number | null;
-  featureLimit: number | null;
-  horseCount: number;
-  enabledModules: ModuleId[];
-  currentPeriodEnd: string | null;
-};
-
-const planLabels: Record<"basic" | "pro" | "unlimited", string> = {
-  basic: "Basic",
-  pro: "Pro",
-  unlimited: "Unlimited",
-};
-
-const limitLabel = (used: number, limit: number | null): string =>
-  limit === null ? `${used} / Ilimitado` : `${used} / ${limit}`;
 
 function ModuleCard({ href, title, description, icon }: ModuleCardProps) {
   return (
@@ -81,13 +59,8 @@ function ModuleCard({ href, title, description, icon }: ModuleCardProps) {
 
 export default function CenterDashboardPage() {
   const router = useRouter();
-  const [pendingRequests, setPendingRequests] = useState(0);
-  const [pendingRequestsLoading, setPendingRequestsLoading] = useState(false);
   const [enabledModules, setEnabledModules] = useState<ModuleId[]>([]);
   const [modulesLoading, setModulesLoading] = useState(true);
-  const [billingState, setBillingState] = useState<BillingState | null>(null);
-  const [billingLoading, setBillingLoading] = useState(true);
-  const [billingError, setBillingError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const {
@@ -105,98 +78,6 @@ export default function CenterDashboardPage() {
     await signOut(auth);
     router.push("/login");
   };
-
-  useEffect(() => {
-    if (!activeCenterId) {
-      setPendingRequests(0);
-      setPendingRequestsLoading(false);
-      return;
-    }
-
-    let isMounted = true;
-
-    const loadPendingRequests = async () => {
-      setPendingRequestsLoading(true);
-
-      try {
-        const members = await getCenterMembers(activeCenterId);
-        if (!isMounted) return;
-
-        setPendingRequests(
-          members.filter(
-            (member) => member.role === "rider" && member.status === "pending"
-          ).length
-        );
-      } catch (loadError) {
-        console.error("No se pudieron cargar las solicitudes pendientes:", loadError);
-        if (!isMounted) return;
-        setPendingRequests(0);
-      } finally {
-        if (isMounted) {
-          setPendingRequestsLoading(false);
-        }
-      }
-    };
-
-    void loadPendingRequests();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [activeCenterId]);
-
-  useEffect(() => {
-    if (!activeCenterId) {
-      setBillingState(null);
-      setBillingLoading(false);
-      return;
-    }
-
-    let isMounted = true;
-
-    const loadBillingState = async () => {
-      setBillingLoading(true);
-      setBillingError(null);
-
-      try {
-        const token = await auth.currentUser?.getIdToken();
-        if (!token) {
-          throw new Error("No hay sesion activa.");
-        }
-
-        const response = await fetch("/api/center/billing-state", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = (await response.json()) as BillingState & { error?: string };
-        if (!response.ok) {
-          throw new Error(data.error || "No se pudo cargar el estado del plan.");
-        }
-
-        if (isMounted) {
-          setBillingState(data);
-        }
-      } catch (loadError) {
-        console.error("No se pudo cargar el estado del plan:", loadError);
-        if (isMounted) {
-          setBillingError("No se pudo cargar el estado del plan.");
-          setBillingState(null);
-        }
-      } finally {
-        if (isMounted) {
-          setBillingLoading(false);
-        }
-      }
-    };
-
-    void loadBillingState();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [activeCenterId]);
 
   // Cargar módulos habilitados
   useEffect(() => {
@@ -248,13 +129,13 @@ export default function CenterDashboardPage() {
   return (
     <main className="min-h-screen bg-brand-background text-brand-text">
       <header className="border-b border-brand-border/80 bg-white/35 backdrop-blur-sm">
-        <div className="grid w-full grid-cols-[3rem_1fr_3rem] items-center gap-2 px-4 py-2 sm:px-6 sm:py-2.5 md:gap-4 md:py-3">
+        <div className="grid w-full grid-cols-[2.5rem_1fr_8rem] items-center gap-2 px-4 py-1.5 sm:grid-cols-[2.5rem_1fr_9rem] sm:px-6 md:grid-cols-[2.5rem_1fr_10rem] md:gap-4">
           <div className="flex items-center">
             <button
               type="button"
               onClick={() => setIsSidebarOpen(true)}
               aria-label="Abrir menú del centro"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-brand-border bg-white/80 text-brand-primary transition hover:border-brand-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-brand-background"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-brand-border bg-white/80 text-brand-primary transition hover:border-brand-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-brand-background"
             >
               <svg
                 aria-hidden="true"
@@ -273,25 +154,26 @@ export default function CenterDashboardPage() {
           </div>
 
           <div className="min-w-0 text-center">
+            <h1
+              className={`${cormorant.className} text-center text-[16px] font-medium leading-none tracking-[0.04em] text-brand-text sm:text-[18px] md:text-[20px]`}
+            >
+              {activeCenterName ?? "Centro"}
+            </h1>
+            <p className="text-center text-[10px] leading-4 text-brand-secondary sm:text-[11px]">
+              Panel del centro • {enabledModules.length} módulo{enabledModules.length === 1 ? "" : "s"} activo{enabledModules.length === 1 ? "" : "s"}
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end overflow-visible">
             <Image
               src="/logo-equidata.png"
               alt="Equidata"
               width={180}
               height={180}
               priority
-              className="mx-auto h-auto w-32 opacity-95 sm:w-36 md:w-40"
+              className="h-auto w-32 opacity-95 sm:w-36 md:w-40"
             />
-            <h1
-              className={`${cormorant.className} mt-1 text-center text-[18px] font-medium leading-tight tracking-[0.04em] text-brand-text sm:text-[20px] md:text-[26px]`}
-            >
-              {activeCenterName ?? "Centro"}
-            </h1>
-            <p className="text-center text-[10px] leading-4 text-brand-secondary sm:text-[11px] md:text-sm">
-              Panel del centro • {enabledModules.length} módulo{enabledModules.length === 1 ? "" : "s"} activo{enabledModules.length === 1 ? "" : "s"}
-            </p>
           </div>
-
-          <div aria-hidden="true" />
         </div>
       </header>
 
@@ -314,96 +196,6 @@ export default function CenterDashboardPage() {
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {error}
           </p>
-        )}
-
-        {!!activeCenterId && (
-          <section className="rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-secondary">
-                  Plan actual
-                </p>
-                <h2 className="mt-1 text-lg font-semibold text-brand-text">
-                  {billingLoading
-                    ? "Cargando estado del plan..."
-                    : billingState?.planId
-                      ? planLabels[billingState.planId]
-                      : "Sin plan activo"}
-                </h2>
-                <p className="mt-1 text-sm text-brand-secondary">
-                  {billingError
-                    ? billingError
-                    : billingState?.isActive
-                      ? "Estado: activo"
-                      : "Estado: pendiente o inactivo"}
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-brand-border bg-brand-background/70 px-4 py-3">
-                    <p className="text-xs font-semibold uppercase text-brand-secondary">
-                      Caballos
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-brand-text">
-                      {billingState
-                        ? limitLabel(billingState.horseCount, billingState.horseLimit)
-                        : "-"}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-brand-border bg-brand-background/70 px-4 py-3">
-                    <p className="text-xs font-semibold uppercase text-brand-secondary">
-                      Funcionalidades
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-brand-text">
-                      {billingState
-                        ? limitLabel(
-                            billingState.enabledModules.length,
-                            billingState.featureLimit
-                          )
-                        : "-"}
-                    </p>
-                  </div>
-                </div>
-                <Link
-                  href="/dashboard/center/billing"
-                  className="inline-flex h-11 items-center justify-center rounded-xl bg-brand-primary px-4 text-sm font-semibold text-white transition hover:bg-brand-primaryHover"
-                >
-                  Ver mi plan
-                </Link>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {!!activeCenterId && (
-          <section className="rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-secondary">
-                  Solicitudes de acceso
-                </p>
-                <h2 className="mt-1 text-lg font-semibold text-brand-text">
-                  {pendingRequestsLoading
-                    ? "Revisando solicitudes pendientes..."
-                    : pendingRequests > 0
-                      ? `Tienes ${pendingRequests} solicitud${pendingRequests === 1 ? "" : "es"} pendiente${pendingRequests === 1 ? "" : "s"}`
-                      : "No hay solicitudes pendientes ahora mismo"}
-                </h2>
-                <p className="mt-1 text-sm text-brand-secondary">
-                  Revisa aqui las peticiones de riders y decide si quieres
-                  aceptarlas o denegarlas desde la ficha del centro.
-                </p>
-              </div>
-
-              <Link
-                href={`/centros/${activeCenterId}`}
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-brand-border px-4 text-sm font-semibold text-brand-text transition hover:border-brand-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-brand-background"
-              >
-                Revisar solicitudes
-              </Link>
-            </div>
-          </section>
         )}
 
         {memberships.length > 1 && (
@@ -520,9 +312,6 @@ export default function CenterDashboardPage() {
         onClose={() => setIsModalOpen(false)}
         onSave={(modules) => {
           setEnabledModules(modules);
-          setBillingState((current) =>
-            current ? { ...current, enabledModules: modules } : current
-          );
         }}
       />
     </main>
