@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CenterHeader } from "@/components/center/CenterHeader";
+import { ModuleHiddenNotice } from "@/components/dashboard/ModuleHiddenNotice";
 import { PaddockForm } from "@/components/center/paddocks/PaddockForm";
 import { PaddockList } from "@/components/center/paddocks/PaddockList";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
+import { isModuleVisible } from "@/lib/modules/moduleConfig";
 import { getHorseListItemsByCenter, HorseListItem } from "@/lib/horses";
 import {
   createPaddock,
@@ -31,6 +33,7 @@ export default function CenterPaddocksPage() {
     memberships,
     setActiveCenterId,
   } = useRequireCenterRole(["CENTER_OWNER", "CENTER_ADMIN"]);
+  const paddocksModuleVisible = isModuleVisible("paddocks");
 
   const [paddocks, setPaddocks] = useState<Paddock[]>([]);
   const [assignments, setAssignments] = useState<PaddockAssignment[]>([]);
@@ -53,13 +56,18 @@ export default function CenterPaddocksPage() {
       setHorses(nextHorses);
     } catch (loadError) {
       console.error(loadError);
-      setError("No se pudo cargar el módulo de paddocks.");
+      setError("No se pudo cargar el mÃ³dulo de paddocks.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    if (!paddocksModuleVisible) {
+      setLoading(false);
+      return;
+    }
+
     if (!activeCenterId) {
       setLoading(false);
       setPaddocks([]);
@@ -68,7 +76,7 @@ export default function CenterPaddocksPage() {
       return;
     }
     void loadData(activeCenterId);
-  }, [activeCenterId]);
+  }, [activeCenterId, paddocksModuleVisible]);
 
   const listItems = useMemo<PaddockListViewItem[]>(() => {
     const horseNameById = new Map(horses.map((item) => [item.horse.id, item.horse.name]));
@@ -98,6 +106,10 @@ export default function CenterPaddocksPage() {
 
   if (!isAllowed) return null;
 
+  if (!paddocksModuleVisible) {
+    return <ModuleHiddenNotice />;
+  }
+
   return (
     <main className="min-h-screen bg-brand-background text-brand-text">
       <CenterHeader
@@ -106,7 +118,7 @@ export default function CenterPaddocksPage() {
         backHref="/dashboard/center"
       />
 
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError && (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {guardError}
@@ -119,7 +131,7 @@ export default function CenterPaddocksPage() {
         )}
 
         {memberships.length > 1 && (
-          <section className="max-w-xl rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
+          <section className="w-full rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
             <label htmlFor="center-selector" className="mb-2 block text-sm text-brand-secondary">
               Cambiar centro activo
             </label>
@@ -149,7 +161,7 @@ export default function CenterPaddocksPage() {
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold text-brand-text">Listado</h2>
                   <p className="text-sm text-brand-secondary">
-                    Vista rápida de ocupación y caballos en paddock.
+                    Vista rÃ¡pida de ocupaciÃ³n y caballos en paddock.
                   </p>
                 </div>
                 {loading ? <p className="text-sm text-brand-secondary">Cargando...</p> : <PaddockList items={listItems} />}
@@ -159,7 +171,7 @@ export default function CenterPaddocksPage() {
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold text-brand-text">Nuevo paddock</h2>
                   <p className="text-sm text-brand-secondary">
-                    Crea paddocks individuales, compartidos o de rehabilitación.
+                    Crea paddocks individuales, compartidos o de rehabilitaciÃ³n.
                   </p>
                 </div>
                 <PaddockForm
@@ -221,4 +233,3 @@ export default function CenterPaddocksPage() {
     </main>
   );
 }
-

@@ -77,7 +77,7 @@ export function ArenaTimeline({
             ))}
 
             {bookings.length === 0 ? (
-              <div className="flex h-full items-center justify-center px-6 text-center text-sm text-brand-secondary">
+                <div className="flex h-full items-center justify-center px-6 text-center text-sm text-brand-secondary">
                 No hay ocupaciones registradas en este tramo.
               </div>
             ) : (

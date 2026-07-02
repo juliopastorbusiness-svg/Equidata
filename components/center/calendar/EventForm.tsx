@@ -67,6 +67,7 @@ export function EventForm({
   });
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setValues({
       title: defaultValues?.title ?? "",
       description: defaultValues?.description ?? "",
@@ -226,7 +227,7 @@ export function EventForm({
       />
 
       <IdMultiSelect
-        label="Alumnos"
+        label="Clientes"
         value={values.studentIds}
         options={studentOptions.map((person) => ({ id: person.id, label: person.label }))}
         onChange={(studentIds) => setValues((prev) => ({ ...prev, studentIds }))}

@@ -127,12 +127,12 @@ export async function POST(request: NextRequest) {
 
     const session = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
-      return_url: `${appUrl}/dashboard/center/billing`,
+      return_url: `${appUrl}/dashboard/center/plan`,
     });
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error('Error creando sesion de Customer Portal:', error);
-    return NextResponse.json({ code: 'INTERNAL_ERROR', error: 'No se pudo abrir el portal de facturacion.' }, { status: 500 });
+    return NextResponse.json({ code: 'INTERNAL_ERROR', error: 'No se pudo abrir el portal de facturación.' }, { status: 500 });
   }
 }

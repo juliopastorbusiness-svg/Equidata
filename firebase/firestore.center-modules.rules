@@ -148,6 +148,26 @@ service cloud.firestore {
         request.resource.data.status in ["SCHEDULED", "CONFIRMED", "CANCELLED", "COMPLETED"];
     }
 
+    function isValidClient() {
+      return request.resource.data.centerId is string &&
+        request.resource.data.fullName is string &&
+        request.resource.data.status in ["ACTIVE", "INACTIVE", "LEAD"] &&
+        request.resource.data.isStudent is bool &&
+        request.resource.data.isOwner is bool;
+    }
+
+    match /clients/{clientId} {
+      allow read: if isSignedIn() && isCenterStaff(resource.data.centerId);
+      allow create: if isSignedIn() &&
+        isValidClient() &&
+        isCenterStaff(request.resource.data.centerId);
+      allow update: if isSignedIn() &&
+        isValidClient() &&
+        request.resource.data.centerId == resource.data.centerId &&
+        isCenterStaff(resource.data.centerId);
+      allow delete: if isSignedIn() && isCenterStaff(resource.data.centerId);
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId);
       allow create, update: if isSignedIn() && request.auth.uid == userId && isValidUserProfile();

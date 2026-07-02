@@ -1,0 +1,182 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ⨯ ./app/clientes/[clientId]/page.tsx
+Error:   [31mx[0m Expected '</', got 'div'
+     ,-[[36;1;4mC:\Users\julio\equidata\app\clientes\[clientId]\page.tsx[0m:397:1]
+ [2m394[0m |             )}
+ [2m395[0m |           </>
+ [2m396[0m |         )}
+ [2m397[0m |       </div>
+     : [35;1m        ^^^[0m
+ [2m398[0m |     </main>
+ [2m399[0m |   );
+ [2m400[0m | }
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/clientes/[clientId]/page.tsx
+ ⨯ ./app/clientes/[clientId]/page.tsx
+Error:   [31mx[0m Expected '</', got 'div'
+     ,-[[36;1;4mC:\Users\julio\equidata\app\clientes\[clientId]\page.tsx[0m:533:1]
+ [2m530[0m |             )}
+ [2m531[0m |           </>
+ [2m532[0m |         )}
+ [2m533[0m |       </div>
+     : [35;1m        ^^^[0m
+ [2m534[0m |     </main>
+ [2m535[0m |   );
+ [2m536[0m | }
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/clientes/[clientId]/page.tsx
+ ⨯ ./app/clientes/page.tsx
+Error:   [31mx[0m Expected '</', got 'className'
+     ,-[[36;1;4mC:\Users\julio\equidata\app\clientes\page.tsx[0m:427:1]
+ [2m424[0m |               </div>
+ [2m425[0m |             </article>
+ [2m426[0m | 
+ [2m427[0m |             <article className="rounded-3xl border border-brand-border bg-white/80 p-5 shadow-sm">
+     : [35;1m                     ^^^^^^^^^[0m
+ [2m428[0m |               <div className="mb-4 flex items-start justify-between gap-3">
+ [2m429[0m |                 <div>
+ [2m430[0m |                   <h2 className="text-lg font-semibold text-brand-text">
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/clientes/page.tsx
+ ⨯ ./app/clientes/page.tsx
+Error:   [31mx[0m Expected '</', got 'className'
+     ,-[[36;1;4mC:\Users\julio\equidata\app\clientes\page.tsx[0m:427:1]
+ [2m424[0m |               </div>
+ [2m425[0m |             </article>
+ [2m426[0m | 
+ [2m427[0m |             <article className="rounded-3xl border border-brand-border bg-white/80 p-5 shadow-sm">
+     : [35;1m                     ^^^^^^^^^[0m
+ [2m428[0m |               <div className="mb-4 flex items-start justify-between gap-3">
+ [2m429[0m |                 <div>
+ [2m430[0m |                   <h2 className="text-lg font-semibold text-brand-text">
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/clientes/page.tsx
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⨯ ./app/clientes/page.tsx
+Error:   [31mx[0m Expected '</', got 'className'
+     ,-[[36;1;4mC:\Users\julio\equidata\app\clientes\page.tsx[0m:427:1]
+ [2m424[0m |               </div>
+ [2m425[0m |             </article>
+ [2m426[0m | 
+ [2m427[0m |             <article className="rounded-3xl border border-brand-border bg-white/80 p-5 shadow-sm">
+     : [35;1m                     ^^^^^^^^^[0m
+ [2m428[0m |               <div className="mb-4 flex items-start justify-between gap-3">
+ [2m429[0m |                 <div>
+ [2m430[0m |                   <h2 className="text-lg font-semibold text-brand-text">
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/clientes/page.tsx
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+C:\Users\julio\equidata\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\next\dist\server\lib\trace\tracer.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\context\NoopContextManager.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\api\context.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\trace\NoopTracer.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\trace\ProxyTracer.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+Error creando caballo: Error: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL y FIREBASE_PRIVATE_KEY deben estar configurados.
+    at getAdminApp (lib\firebaseAdmin.ts:35:11)
+    at getAdminAuth (lib\firebaseAdmin.ts:54:10)
+    at POST (app\api\center\horses\route.ts:204:44)
+  33 |
+  34 |   if (!projectId || !clientEmail || !privateKey) {
+> 35 |     throw new Error(
+     |           ^
+  36 |       'FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL y FIREBASE_PRIVATE_KEY deben estar configurados.'
+  37 |     );
+  38 |   }
+C:\Users\julio\equidata\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\next\dist\server\lib\trace\tracer.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\context\NoopContextManager.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\api\context.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\trace\NoopTracer.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\trace\ProxyTracer.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+Error creando caballo: Error: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL y FIREBASE_PRIVATE_KEY deben estar configurados.
+    at getAdminApp (lib\firebaseAdmin.ts:35:11)
+    at getAdminAuth (lib\firebaseAdmin.ts:54:10)
+    at POST (app\api\center\horses\route.ts:204:44)
+  33 |
+  34 |   if (!projectId || !clientEmail || !privateKey) {
+> 35 |     throw new Error(
+     |           ^
+  36 |       'FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL y FIREBASE_PRIVATE_KEY deben estar configurados.'
+  37 |     );
+  38 |   }
+C:\Users\julio\equidata\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\next\dist\server\lib\trace\tracer.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\context\NoopContextManager.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\api\context.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\trace\NoopTracer.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\trace\ProxyTracer.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+Error creando caballo: Error: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL y FIREBASE_PRIVATE_KEY deben estar configurados.
+    at getAdminApp (lib\firebaseAdmin.ts:35:11)
+    at getAdminAuth (lib\firebaseAdmin.ts:54:10)
+    at POST (app\api\center\horses\route.ts:204:44)
+  33 |
+  34 |   if (!projectId || !clientEmail || !privateKey) {
+> 35 |     throw new Error(
+     |           ^
+  36 |       'FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL y FIREBASE_PRIVATE_KEY deben estar configurados.'
+  37 |     );
+  38 |   }
+C:\Users\julio\equidata\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\next\dist\server\lib\trace\tracer.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\context\NoopContextManager.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\api\context.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\trace\NoopTracer.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\trace\ProxyTracer.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+Error creando caballo: Error: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL y FIREBASE_PRIVATE_KEY deben estar configurados.
+    at getAdminApp (lib\firebaseAdmin.ts:35:11)
+    at getAdminAuth (lib\firebaseAdmin.ts:54:10)
+    at POST (app\api\center\horses\route.ts:204:44)
+  33 |
+  34 |   if (!projectId || !clientEmail || !privateKey) {
+> 35 |     throw new Error(
+     |           ^
+  36 |       'FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL y FIREBASE_PRIVATE_KEY deben estar configurados.'
+  37 |     );
+  38 |   }
+C:\Users\julio\equidata\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\next\dist\server\lib\trace\tracer.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\context\NoopContextManager.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\api\context.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\trace\NoopTracer.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\julio\equidata\node_modules\@opentelemetry\api\build\src\trace\ProxyTracer.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+Error creando caballo: Error: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL y FIREBASE_PRIVATE_KEY deben estar configurados.
+    at getAdminApp (lib\firebaseAdmin.ts:35:11)
+    at getAdminAuth (lib\firebaseAdmin.ts:54:10)
+    at POST (app\api\center\horses\route.ts:204:44)
+  33 |
+  34 |   if (!projectId || !clientEmail || !privateKey) {
+> 35 |     throw new Error(
+     |           ^
+  36 |       'FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL y FIREBASE_PRIVATE_KEY deben estar configurados.'
+  37 |     );
+  38 |   }

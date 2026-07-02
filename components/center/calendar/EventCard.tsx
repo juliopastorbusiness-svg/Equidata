@@ -72,7 +72,7 @@ export function EventCard({
         <p>Ubicacion: {event.location ?? arenaLabel ?? "Sin ubicacion"}</p>
         <p>Entrenador: {trainerLabel ?? "Sin asignar"}</p>
         <p>Caballos: {horseLabels.length > 0 ? horseLabels.join(", ") : "Sin caballos"}</p>
-        <p>Alumnos: {studentLabels.length > 0 ? studentLabels.join(", ") : "Sin alumnos"}</p>
+        <p>Clientes: {studentLabels.length > 0 ? studentLabels.join(", ") : "Sin clientes"}</p>
       </div>
     </article>
   );

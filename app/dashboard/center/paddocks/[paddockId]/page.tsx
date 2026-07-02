@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { CenterHeader } from "@/components/center/CenterHeader";
+import { ModuleHiddenNotice } from "@/components/dashboard/ModuleHiddenNotice";
 import { PaddockAssignmentForm } from "@/components/center/paddocks/PaddockAssignmentForm";
 import { PaddockForm } from "@/components/center/paddocks/PaddockForm";
 import { PaddockOccupancyBadge } from "@/components/center/paddocks/PaddockOccupancyBadge";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
+import { isModuleVisible } from "@/lib/modules/moduleConfig";
 import { getHorseListItemsByCenter, HorseListItem } from "@/lib/horses";
 import {
   closePaddockAssignment,
@@ -39,6 +41,7 @@ export default function CenterPaddockDetailPage() {
     setActiveCenterId,
     userId,
   } = useRequireCenterRole(["CENTER_OWNER", "CENTER_ADMIN"]);
+  const paddocksModuleVisible = isModuleVisible("paddocks");
 
   const [paddock, setPaddock] = useState<Paddock | null>(null);
   const [assignments, setAssignments] = useState<PaddockAssignment[]>([]);
@@ -61,7 +64,7 @@ export default function CenterPaddockDetailPage() {
       setAssignments(nextAssignments);
       setHorses(nextHorses);
       if (!nextPaddock) {
-        setError("No se encontró el paddock.");
+        setError("No se encontrÃ³ el paddock.");
       }
     } catch (loadError) {
       console.error(loadError);
@@ -72,12 +75,17 @@ export default function CenterPaddockDetailPage() {
   };
 
   useEffect(() => {
+    if (!paddocksModuleVisible) {
+      setLoading(false);
+      return;
+    }
+
     if (!activeCenterId || !paddockId) {
       setLoading(false);
       return;
     }
     void loadData(activeCenterId, paddockId);
-  }, [activeCenterId, paddockId]);
+  }, [activeCenterId, paddockId, paddocksModuleVisible]);
 
   const horseMap = useMemo(
     () => new Map(horses.map((item) => [item.horse.id, item])),
@@ -118,6 +126,10 @@ export default function CenterPaddockDetailPage() {
 
   if (!isAllowed) return null;
 
+  if (!paddocksModuleVisible) {
+    return <ModuleHiddenNotice />;
+  }
+
   return (
     <main className="min-h-screen bg-brand-background text-brand-text">
       <CenterHeader
@@ -126,7 +138,7 @@ export default function CenterPaddockDetailPage() {
         backHref="/dashboard/center/paddocks"
       />
 
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError && (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {guardError}
@@ -139,7 +151,7 @@ export default function CenterPaddockDetailPage() {
         )}
 
         {memberships.length > 1 && (
-          <section className="max-w-xl rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
+          <section className="w-full rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
             <label htmlFor="center-selector" className="mb-2 block text-sm text-brand-secondary">
               Cambiar centro activo
             </label>
@@ -168,7 +180,7 @@ export default function CenterPaddockDetailPage() {
               <article className="rounded-3xl border border-brand-border bg-white/80 p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm text-brand-secondary">{paddock.code || "Sin código"}</p>
+                    <p className="text-sm text-brand-secondary">{paddock.code || "Sin cÃ³digo"}</p>
                     <h2 className="text-xl font-semibold text-brand-text">{paddock.name}</h2>
                   </div>
                   <PaddockOccupancyBadge
@@ -191,7 +203,7 @@ export default function CenterPaddockDetailPage() {
                     <dd className="font-medium text-brand-text">{paddock.surface || "-"}</dd>
                   </div>
                   <div>
-                    <dt className="text-brand-secondary">Ubicación</dt>
+                    <dt className="text-brand-secondary">UbicaciÃ³n</dt>
                     <dd className="font-medium text-brand-text">{paddock.location || "-"}</dd>
                   </div>
                 </dl>
@@ -288,9 +300,9 @@ export default function CenterPaddockDetailPage() {
             <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
               <article className="rounded-3xl border border-brand-border bg-white/80 p-5 shadow-sm">
                 <div className="mb-4">
-                  <h2 className="text-lg font-semibold text-brand-text">Rotación</h2>
+                  <h2 className="text-lg font-semibold text-brand-text">RotaciÃ³n</h2>
                   <p className="text-sm text-brand-secondary">
-                    Asigna un caballo nuevo o muévelo desde otro paddock.
+                    Asigna un caballo nuevo o muÃ©velo desde otro paddock.
                   </p>
                 </div>
                 <PaddockAssignmentForm
@@ -315,7 +327,7 @@ export default function CenterPaddockDetailPage() {
                       setError(
                         saveError instanceof Error
                           ? saveError.message
-                          : "No se pudo registrar la rotación."
+                          : "No se pudo registrar la rotaciÃ³n."
                       );
                     } finally {
                       setSaving(false);
@@ -329,7 +341,7 @@ export default function CenterPaddockDetailPage() {
                   <div>
                     <h2 className="text-lg font-semibold text-brand-text">Caballos activos</h2>
                     <p className="text-sm text-brand-secondary">
-                      Vista rápida de ocupación actual del paddock.
+                      Vista rÃ¡pida de ocupaciÃ³n actual del paddock.
                     </p>
                   </div>
                   <PaddockOccupancyBadge
@@ -404,7 +416,7 @@ export default function CenterPaddockDetailPage() {
                 </p>
               </div>
               {historyAssignments.length === 0 ? (
-                <p className="text-sm text-brand-secondary">Sin historial todavía.</p>
+                <p className="text-sm text-brand-secondary">Sin historial todavÃ­a.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">

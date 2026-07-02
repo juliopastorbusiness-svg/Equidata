@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { CenterHeader } from "@/components/center/CenterHeader";
+import { ModuleHiddenNotice } from "@/components/dashboard/ModuleHiddenNotice";
 import { PaymentFormValues } from "@/components/center/students/PaymentForm";
 import { StudentPaymentsTab } from "@/components/center/students/StudentPaymentsTab";
 import { StudentReservationsTab } from "@/components/center/students/StudentReservationsTab";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
+import { isModuleVisible } from "@/lib/modules/moduleConfig";
 import {
   createPayment,
   createReservation,
@@ -46,6 +48,7 @@ export default function StudentDetailPage() {
     activeCenterId,
     activeCenterName,
   } = useRequireCenterRole(["CENTER_OWNER", "CENTER_ADMIN"]);
+  const studentsModuleVisible = isModuleVisible("alumnos");
 
   const [student, setStudent] = useState<Student | null>(null);
   const [classes, setClasses] = useState<Awaited<ReturnType<typeof getClasses>>>([]);
@@ -75,6 +78,11 @@ export default function StudentDetailPage() {
   };
 
   useEffect(() => {
+    if (!studentsModuleVisible) {
+      setLoading(false);
+      return;
+    }
+
     if (!activeCenterId || !studentId) {
       setLoading(false);
       return;
@@ -88,7 +96,7 @@ export default function StudentDetailPage() {
         setError("No se pudo cargar la ficha del alumno.");
       })
       .finally(() => setLoading(false));
-  }, [activeCenterId, studentId]);
+  }, [activeCenterId, studentId, studentsModuleVisible]);
 
   const attendanceSummary = useMemo(
     () => ({
@@ -215,6 +223,10 @@ export default function StudentDetailPage() {
 
   if (!isAllowed) return null;
 
+  if (!studentsModuleVisible) {
+    return <ModuleHiddenNotice />;
+  }
+
   return (
     <main className="min-h-screen bg-brand-background text-brand-text">
       <CenterHeader
@@ -223,7 +235,7 @@ export default function StudentDetailPage() {
         backHref="/dashboard/center/students"
       />
 
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError && (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {guardError}

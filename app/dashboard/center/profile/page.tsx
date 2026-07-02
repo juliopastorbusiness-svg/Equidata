@@ -202,7 +202,7 @@ export default function CenterProfilePage() {
         backHref="/dashboard/center"
       />
 
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError && (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {guardError}
@@ -256,7 +256,7 @@ export default function CenterProfilePage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-secondary">
-                  Datos del centro hípico
+                  Datos del centro hÃ­pico
                 </p>
                 <h1 className="mt-1 text-2xl font-semibold text-brand-text">
                   {form.name || "Centro sin nombre"}
@@ -320,7 +320,7 @@ export default function CenterProfilePage() {
               </label>
 
               <label className="block">
-                <span className="text-sm font-semibold text-brand-text">Teléfono</span>
+                <span className="text-sm font-semibold text-brand-text">TelÃ©fono</span>
                 <input
                   value={form.phone}
                   onChange={(event) => updateField("phone", event.target.value)}
@@ -330,7 +330,7 @@ export default function CenterProfilePage() {
               </label>
 
               <label className="block">
-                <span className="text-sm font-semibold text-brand-text">Dirección</span>
+                <span className="text-sm font-semibold text-brand-text">DirecciÃ³n</span>
                 <input
                   value={form.address}
                   onChange={(event) => updateField("address", event.target.value)}
@@ -340,7 +340,7 @@ export default function CenterProfilePage() {
               </label>
 
               <label className="block md:col-span-2">
-                <span className="text-sm font-semibold text-brand-text">Descripción breve</span>
+                <span className="text-sm font-semibold text-brand-text">DescripciÃ³n breve</span>
                 <textarea
                   value={form.description}
                   onChange={(event) => updateField("description", event.target.value)}

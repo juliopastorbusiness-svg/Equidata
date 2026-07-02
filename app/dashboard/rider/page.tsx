@@ -226,14 +226,14 @@ export default function RiderDashboardPage() {
   if (!user) {
     return (
       <main className="min-h-screen bg-brand-background p-6 text-brand-text">
-        <p>No hay sesión activa.</p>
+        <p>No hay sesiÃ³n activa.</p>
       </main>
     );
   }
 
   return (
     <main className="min-h-screen bg-brand-background text-brand-text">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6">
+      <div className="app-shell">
         <RiderDashboardHeader
           riderName={riderName}
           centerName={activeCenterName}
@@ -264,7 +264,7 @@ export default function RiderDashboardPage() {
                 <div>
                   <h2 className="text-lg font-semibold text-brand-text">Tus caballos en el centro activo</h2>
                   <p className="mt-1 text-sm text-brand-secondary">
-                    Contexto rápido del centro activo sin perder la navegación legacy.
+                    Contexto rÃ¡pido del centro activo sin perder la navegaciÃ³n legacy.
                   </p>
                 </div>
                 <Link href="/dashboard/horses" className="text-sm font-semibold text-brand-primary hover:underline">

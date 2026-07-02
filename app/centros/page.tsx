@@ -122,7 +122,7 @@ export default function CentersPage() {
 
   return (
     <main className="min-h-screen bg-brand-background text-brand-text">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6">
+      <div className="app-shell">
         <header className="flex flex-wrap items-end justify-between gap-4 rounded-3xl border border-brand-border bg-white/75 p-6 shadow-sm">
           <div>
             <p className="text-sm uppercase tracking-[0.2em] text-brand-secondary">Centros</p>

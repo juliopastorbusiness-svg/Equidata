@@ -46,9 +46,7 @@ export function BillingMovementHistory({
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeStyles[movement.type]}`}
-                >
+                <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeStyles[movement.type]}`}>
                   {typeLabels[movement.type]}
                 </span>
                 <p className="text-sm text-brand-secondary">

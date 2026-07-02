@@ -120,7 +120,7 @@ export default function DashboardPistaDetailPage() {
       {
         arenaId: arena.id,
         arenaName: arena.name,
-        arenaMeta: [arena.type, arena.surface].filter(Boolean).join(" · ") || undefined,
+        arenaMeta: [arena.type, arena.surface].filter(Boolean).join(" Â· ") || undefined,
         days: dates.map((date) => {
           const { start, end } = dayRange(date);
 
@@ -156,7 +156,7 @@ export default function DashboardPistaDetailPage() {
                   id: booking.id,
                   title:
                     classItem?.title ||
-                    (trainingItem ? `Entrenamiento · ${trainingItem.type}` : booking.title),
+                    (trainingItem ? `Entrenamiento Â· ${trainingItem.type}` : booking.title),
                   trainerLabel,
                   startLabel: booking.startAt.toDate().toLocaleTimeString("es-ES", {
                     hour: "2-digit",
@@ -196,7 +196,7 @@ export default function DashboardPistaDetailPage() {
         subtitle={`Centro activo: ${activeCenterName ?? "Sin centro activo"}`}
         backHref="/dashboard/pistas"
       />
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError ? (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">{guardError}</p>
         ) : null}
@@ -213,7 +213,7 @@ export default function DashboardPistaDetailPage() {
             <section className="rounded-3xl border border-brand-border bg-white/80 p-6 shadow-sm">
               <h1 className="text-2xl font-semibold">{arena.name}</h1>
               <p className="mt-2 text-sm text-brand-secondary">
-                {[arena.type, arena.surface].filter(Boolean).join(" · ") || "Sin metadatos"}
+                {[arena.type, arena.surface].filter(Boolean).join(" Â· ") || "Sin metadatos"}
               </p>
               {arena.notes ? <p className="mt-4 text-sm text-brand-secondary">{arena.notes}</p> : null}
             </section>

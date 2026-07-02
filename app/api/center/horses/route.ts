@@ -154,6 +154,7 @@ const normalizeHorsePayload = (payload: Record<string, unknown>) => {
     name,
     status: typeof payload.status === 'string' ? payload.status : 'ACTIVE',
     ownerId: trimOrNull(payload.ownerId),
+    ownerName: trimOrNull(payload.ownerName),
     riderId: trimOrNull(payload.riderId),
     stableId: trimOrNull(payload.stableId),
     breed: trimOrNull(payload.breed),

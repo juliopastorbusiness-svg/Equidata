@@ -115,7 +115,7 @@ export default function DashboardPistasPage() {
     return arenas.map((arena) => ({
       arenaId: arena.id,
       arenaName: arena.name,
-      arenaMeta: [arena.type, arena.surface].filter(Boolean).join(" · ") || undefined,
+      arenaMeta: [arena.type, arena.surface].filter(Boolean).join(" Â· ") || undefined,
       days: dates.map((date) => {
         const { start, end } = dayRange(date);
 
@@ -153,7 +153,7 @@ export default function DashboardPistasPage() {
                 id: booking.id,
                 title:
                   classItem?.title ||
-                  (trainingItem ? `Entrenamiento · ${trainingItem.type}` : booking.title),
+                  (trainingItem ? `Entrenamiento Â· ${trainingItem.type}` : booking.title),
                 trainerLabel,
                 startLabel: booking.startAt.toDate().toLocaleTimeString("es-ES", {
                   hour: "2-digit",
@@ -192,7 +192,7 @@ export default function DashboardPistasPage() {
         subtitle={`Centro activo: ${activeCenterName ?? "Sin centro activo"}`}
         backHref="/dashboard/center"
       />
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError ? (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">{guardError}</p>
         ) : null}
@@ -252,7 +252,7 @@ export default function DashboardPistasPage() {
                   >
                     <p className="font-semibold text-brand-text">{arena.name}</p>
                     <p className="mt-1 text-sm text-brand-secondary">
-                      {[arena.type, arena.surface].filter(Boolean).join(" · ") || "Sin meta"}
+                      {[arena.type, arena.surface].filter(Boolean).join(" Â· ") || "Sin meta"}
                     </p>
                     <p className="mt-3 text-sm text-brand-secondary">Bloques activos: {activeBookings}</p>
                   </Link>

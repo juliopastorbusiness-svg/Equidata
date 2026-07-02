@@ -24,7 +24,7 @@ export function CenterHeader({
 
   return (
     <header className="sticky top-0 z-40 border-b border-brand-border bg-brand-background/95 backdrop-blur">
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-2 px-4 py-3 md:px-6 md:py-4">
+      <div className="app-header-shell">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             {backHref && (
@@ -80,4 +80,3 @@ export function CenterHeader({
     </header>
   );
 }
-

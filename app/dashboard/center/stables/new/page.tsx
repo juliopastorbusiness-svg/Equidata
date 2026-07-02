@@ -82,7 +82,7 @@ export default function NewStableHorsePage() {
         backHref="/dashboard/center/stables"
       />
 
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError && (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {guardError}
@@ -103,6 +103,9 @@ export default function NewStableHorsePage() {
             setError(null);
             try {
               const payload = horseFormValuesToPayload(values) as CreateHorseInput;
+              payload.ownerName = values.ownerId
+                ? ownerOptions.find((option) => option.id === values.ownerId)?.label
+                : undefined;
               const horseId = await createHorse(activeCenterId, payload);
               if (photoFile) {
                 await uploadHorsePhoto(activeCenterId, horseId, photoFile);

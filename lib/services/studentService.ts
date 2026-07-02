@@ -1,7 +1,8 @@
-import { addDoc, deleteDoc, getDoc, getDocs, orderBy, query, updateDoc } from "firebase/firestore";
-import { FirestoreStudentDoc } from "@/lib/services/firestoreTypes";
-import { mapStudent } from "@/lib/services/mappers";
-import { Student } from "@/lib/services/types";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, updateDoc, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { FirestoreClientDoc, FirestoreStudentDoc } from "@/lib/services/firestoreTypes";
+import { mapClient, mapStudent } from "@/lib/services/mappers";
+import { Client, Student } from "@/lib/services/types";
 import {
   assertCenterId,
   assertRequiredString,
@@ -33,13 +34,73 @@ const studentsCollection = (centerId: string) =>
 const studentDoc = (centerId: string, studentId: string) =>
   centerDocument<FirestoreStudentDoc>(centerId, "students", studentId);
 
-export const getStudents = async (centerId: string): Promise<Student[]> => {
-  const normalizedCenterId = assertCenterId(centerId);
+const clientsCollection = () => collection(db, "clients");
+
+const splitFullName = (fullName: string) => {
+  const [firstName = "", ...rest] = fullName.trim().split(/\s+/);
+  return {
+    firstName: firstName || fullName.trim(),
+    lastName: rest.join(" "),
+  };
+};
+
+const clientToStudent = (client: Client): Student => {
+  const name = splitFullName(client.fullName);
+
+  return {
+    id: client.id,
+    centerId: client.centerId,
+    firstName: name.firstName,
+    lastName: name.lastName,
+    email: client.email,
+    phone: client.phone,
+    level: "INITIATION",
+    status: client.status,
+    notes: client.notes,
+    createdAt: client.createdAt,
+    updatedAt: client.updatedAt,
+  };
+};
+
+const getStudentClients = async (centerId: string): Promise<Student[]> => {
   const snapshot = await getDocs(
-    query(studentsCollection(normalizedCenterId), orderBy("lastName", "asc"))
+    query(
+      clientsCollection(),
+      where("centerId", "==", centerId)
+    )
   );
 
-  return snapshot.docs.map((row) => mapStudent(row.id, row.data(), normalizedCenterId));
+  return snapshot.docs
+    .map((row) => mapClient(row.id, row.data() as FirestoreClientDoc))
+    .filter((client) => client.isStudent)
+    .map(clientToStudent)
+    .sort((left, right) =>
+      `${left.lastName} ${left.firstName}`.localeCompare(
+        `${right.lastName} ${right.firstName}`,
+        "es",
+        { sensitivity: "base" }
+      )
+    );
+};
+
+export const getStudents = async (centerId: string): Promise<Student[]> => {
+  const normalizedCenterId = assertCenterId(centerId);
+  const [snapshot, clientStudents] = await Promise.all([
+    getDocs(query(studentsCollection(normalizedCenterId), orderBy("lastName", "asc"))),
+    getStudentClients(normalizedCenterId),
+  ]);
+
+  const legacyStudents = snapshot.docs.map((row) => mapStudent(row.id, row.data(), normalizedCenterId));
+  const legacyIds = new Set(legacyStudents.map((student) => student.id));
+
+  return [...legacyStudents, ...clientStudents.filter((student) => !legacyIds.has(student.id))].sort(
+    (left, right) =>
+      `${left.lastName} ${left.firstName}`.localeCompare(
+        `${right.lastName} ${right.firstName}`,
+        "es",
+        { sensitivity: "base" }
+      )
+  );
 };
 
 export const getStudentById = async (
@@ -48,8 +109,27 @@ export const getStudentById = async (
 ): Promise<Student | null> => {
   const normalizedCenterId = assertCenterId(centerId);
   const snapshot = await getDoc(studentDoc(normalizedCenterId, studentId));
-  if (!snapshot.exists()) return null;
+  if (!snapshot.exists()) {
+    const clientSnapshot = await getDoc(doc(clientsCollection(), assertRequiredString("studentId", studentId)));
+    if (!clientSnapshot.exists()) return null;
+
+    const client = mapClient(clientSnapshot.id, clientSnapshot.data() as FirestoreClientDoc);
+    if (client.centerId !== normalizedCenterId || !client.isStudent) return null;
+
+    return clientToStudent(client);
+  }
   return mapStudent(snapshot.id, snapshot.data(), normalizedCenterId);
+};
+
+export const getStudentOptions = async (
+  centerId: string
+): Promise<Array<{ id: string; label: string }>> => {
+  const students = await getStudents(centerId);
+
+  return students.map((student) => ({
+    id: student.id,
+    label: `${student.firstName} ${student.lastName}`.trim(),
+  }));
 };
 
 export const createStudent = async (

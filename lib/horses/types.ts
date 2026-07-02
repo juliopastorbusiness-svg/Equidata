@@ -82,6 +82,7 @@ export type Horse = {
   name: string;
   status: HorseStatus;
   ownerId?: string;
+  ownerName?: string;
   riderId?: string;
   stableId?: string;
   breed?: string;

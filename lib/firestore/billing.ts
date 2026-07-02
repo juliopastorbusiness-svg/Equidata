@@ -390,6 +390,14 @@ export const listClientPayments = async (
   }
 };
 
+export const listAllClientPayments = async (
+  centerId: string,
+  riderUid: string
+): Promise<PaymentDoc[]> => {
+  const rows = await listAllPayments(centerId);
+  return sortTimestampDesc(rows.filter((row) => row.riderUid === riderUid));
+};
+
 export const listClientBillingServices = async (
   centerId: string,
   riderUid: string
@@ -687,6 +695,20 @@ export const listClientLedgerEntriesByPeriod = async (
     }));
     return sortCreatedAtDesc(rows);
   }
+};
+
+export const listClientLedgerEntries = async (
+  centerId: string,
+  riderUid: string
+): Promise<LedgerEntryDoc[]> => {
+  const q = query(ledgerCollection(centerId), where("riderUid", "==", riderUid));
+  const snap = await getDocs(q);
+  const rows = snap.docs.map((row) => ({
+    id: row.id,
+    ...(row.data() as Omit<LedgerEntryDoc, "id">),
+  }));
+
+  return sortCreatedAtDesc(rows);
 };
 
 export const listExpensesByPeriod = async (

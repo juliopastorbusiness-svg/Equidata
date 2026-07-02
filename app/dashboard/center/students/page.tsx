@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { CenterHeader } from "@/components/center/CenterHeader";
 import { StudentForm, StudentFormValues } from "@/components/center/students/StudentForm";
 import { StudentList } from "@/components/center/students/StudentList";
+import { ModuleHiddenNotice } from "@/components/dashboard/ModuleHiddenNotice";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
+import { isModuleVisible } from "@/lib/modules/moduleConfig";
 import {
   createStudent,
   deleteStudent,
@@ -28,6 +30,7 @@ export default function CenterStudentsPage() {
     memberships,
     setActiveCenterId,
   } = useRequireCenterRole(["CENTER_OWNER", "CENTER_ADMIN"]);
+  const studentsModuleVisible = isModuleVisible("alumnos");
 
   const [students, setStudents] = useState<Student[]>([]);
   const [reservations, setReservations] = useState<Awaited<ReturnType<typeof getReservations>>>([]);
@@ -49,6 +52,11 @@ export default function CenterStudentsPage() {
   };
 
   useEffect(() => {
+    if (!studentsModuleVisible) {
+      setLoading(false);
+      return;
+    }
+
     if (!activeCenterId) {
       setStudents([]);
       setReservations([]);
@@ -65,7 +73,7 @@ export default function CenterStudentsPage() {
         setError("No se pudo cargar el modulo de alumnos.");
       })
       .finally(() => setLoading(false));
-  }, [activeCenterId]);
+  }, [activeCenterId, studentsModuleVisible]);
 
   const resetEditor = () => {
     setEditingStudent(null);
@@ -130,6 +138,10 @@ export default function CenterStudentsPage() {
 
   if (!isAllowed) return null;
 
+  if (!studentsModuleVisible) {
+    return <ModuleHiddenNotice />;
+  }
+
   return (
     <main className="min-h-screen bg-brand-background text-brand-text">
       <CenterHeader
@@ -138,7 +150,7 @@ export default function CenterStudentsPage() {
         backHref="/dashboard/center"
       />
 
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError && (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {guardError}
@@ -151,7 +163,7 @@ export default function CenterStudentsPage() {
         )}
 
         {memberships.length > 1 && (
-          <section className="max-w-xl rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
+          <section className="w-full rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
             <label htmlFor="center-selector" className="mb-2 block text-sm text-brand-secondary">
               Cambiar centro activo
             </label>

@@ -102,7 +102,7 @@ export default function DashboardClassesPage() {
         backHref="/dashboard/center"
       />
 
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError ? (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">{guardError}</p>
         ) : null}

@@ -2,6 +2,7 @@ import { doc, Firestore, getDoc } from "firebase/firestore";
 import { auth } from "@/lib/firebase";
 import {
   DEFAULT_ENABLED_MODULES,
+  isModuleVisible,
   ModuleId,
 } from "@/lib/modules/moduleConfig";
 
@@ -61,10 +62,10 @@ export class ModuleService {
       }
 
       const center = centerDoc.data() as { enabledModules?: ModuleId[] };
-      return center.enabledModules || DEFAULT_ENABLED_MODULES;
+      return (center.enabledModules || DEFAULT_ENABLED_MODULES).filter(isModuleVisible);
     } catch (error) {
       console.error("Error obteniendo modulos:", error);
-      return DEFAULT_ENABLED_MODULES;
+      return DEFAULT_ENABLED_MODULES.filter(isModuleVisible);
     }
   }
 

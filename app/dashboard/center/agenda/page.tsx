@@ -18,6 +18,7 @@ import {
   deleteEvent,
   Event,
   getEventsByDateRange,
+  getStudentOptions,
   updateEvent,
 } from "@/lib/services";
 
@@ -64,6 +65,7 @@ export default function CenterAgendaPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [horses, setHorses] = useState<HorseListItem[]>([]);
   const [people, setPeople] = useState<CenterPersonOption[]>([]);
+  const [students, setStudents] = useState<CenterPersonOption[]>([]);
   const [arenas, setArenas] = useState<Arena[]>([]);
   const [visibleMonth, setVisibleMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -84,6 +86,7 @@ export default function CenterAgendaPage() {
       setEvents([]);
       setHorses([]);
       setPeople([]);
+      setStudents([]);
       setArenas([]);
       setLoading(false);
       return;
@@ -102,10 +105,12 @@ export default function CenterAgendaPage() {
       loadMonthEvents(activeCenterId, visibleMonth),
       getHorseListItemsByCenter(activeCenterId),
       getCenterPersonOptions(activeCenterId),
+      getStudentOptions(activeCenterId),
     ])
-      .then(([, nextHorses, nextPeople]) => {
+      .then(([, nextHorses, nextPeople, nextStudents]) => {
         setHorses(nextHorses);
         setPeople(nextPeople);
+        setStudents(nextStudents);
       })
       .catch((loadError) => {
         console.error(loadError);
@@ -120,7 +125,10 @@ export default function CenterAgendaPage() {
     () => new Map(horses.map((item) => [item.horse.id, item.horse.name])),
     [horses]
   );
-  const peopleMap = useMemo(() => new Map(people.map((item) => [item.id, item.label])), [people]);
+  const peopleMap = useMemo(
+    () => new Map([...people, ...students].map((item) => [item.id, item.label])),
+    [people, students]
+  );
   const arenaMap = useMemo(() => new Map(arenas.map((item) => [item.id, item.name])), [arenas]);
 
   const selectedDayEvents = useMemo(() => {
@@ -219,7 +227,7 @@ export default function CenterAgendaPage() {
         backHref="/dashboard/center"
       />
 
-      <div className="mx-auto flex w-full max-w-[1520px] flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError && (
           <p className="rounded-2xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {guardError}
@@ -232,7 +240,7 @@ export default function CenterAgendaPage() {
         )}
 
         {memberships.length > 1 && (
-          <section className="max-w-xl rounded-[28px] border border-white/80 bg-white/75 p-4 shadow-[0_20px_70px_-38px_rgba(15,23,42,0.45)] backdrop-blur">
+          <section className="w-full rounded-[28px] border border-white/80 bg-white/75 p-4 shadow-[0_20px_70px_-38px_rgba(15,23,42,0.45)] backdrop-blur">
             <label htmlFor="center-selector" className="mb-2 block text-sm text-brand-secondary">
               Cambiar centro activo
             </label>
@@ -312,7 +320,7 @@ export default function CenterAgendaPage() {
                       initialDate={dayKey(selectedDate)}
                       submitting={saving}
                       trainerOptions={people}
-                      studentOptions={people}
+                      studentOptions={students}
                       horseOptions={horses}
                       arenaOptions={arenas}
                       submitLabel={editingEvent ? "Guardar cambios" : "Crear actividad"}

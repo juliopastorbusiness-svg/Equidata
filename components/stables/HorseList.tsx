@@ -74,6 +74,7 @@ export function HorseList({ items, getHref }: HorseListProps) {
                 >
                   <td className="px-4 py-4">
                     <div className="font-semibold text-brand-text">{item.horse.name}</div>
+                    <div className="mt-1 text-xs text-brand-secondary">{item.ownerLabel}</div>
                   </td>
                   <td className="px-4 py-4 text-brand-secondary">
                     {item.horse.breed || "-"}

@@ -6,7 +6,6 @@ import { CenterHeader } from "@/components/center/CenterHeader";
 import { BillingCustomersPanel } from "@/components/dashboard/billing/BillingCustomersPanel";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
 import { useModuleEnabled } from "@/lib/hooks/useModuleEnabled";
-import { auth } from "@/lib/firebase";
 import {
   addOneOffCharge,
   BillingPeriod,
@@ -39,18 +38,6 @@ type BillingTab = "PORTFOLIO" | "CLIENTS" | "SUMMARY" | "EXPENSES";
 type DetailTab = "CHARGES" | "PAYMENTS" | "ACTIVITY";
 type LedgerFilter = "ALL" | LedgerEntryType;
 
-type BillingState = {
-  planId: "basic" | "pro" | "unlimited" | null;
-  status: string | null;
-  subscriptionStatus: string | null;
-  isActive: boolean;
-  horseLimit: number | null;
-  featureLimit: number | null;
-  horseCount: number;
-  enabledModules: string[];
-  currentPeriodEnd: string | null;
-};
-
 type PaymentFormState = {
   chargeId: string;
   amount: string;
@@ -78,26 +65,6 @@ const currency = new Intl.NumberFormat("es-ES", {
   style: "currency",
   currency: "EUR",
 });
-
-const planLabels: Record<"basic" | "pro" | "unlimited", string> = {
-  basic: "Basic",
-  pro: "Pro",
-  unlimited: "Unlimited",
-};
-
-const limitLabel = (used: number, limit: number | null): string =>
-  limit === null ? `${used} / Ilimitado` : `${used} / ${limit}`;
-
-const renewalLabel = (value: string | null): string => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("es-ES", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-};
 
 const currentPeriod = getCurrentPeriod();
 
@@ -239,10 +206,6 @@ export default function CenterBillingPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  const [billingState, setBillingState] = useState<BillingState | null>(null);
-  const [billingStateLoading, setBillingStateLoading] = useState(true);
-  const [portalLoading, setPortalLoading] = useState(false);
-  const [portalError, setPortalError] = useState<string | null>(null);
 
   const [clientRows, setClientRows] = useState<MonthlyClientBreakdownRow[]>([]);
   const [summaryRows, setSummaryRows] = useState<MonthlySummaryRow[]>([]);
@@ -361,77 +324,9 @@ export default function CenterBillingPage() {
       }
     } catch (loadError) {
       console.error(loadError);
-      setError("No se pudo cargar la informacion de facturacion.");
+      setError("No se pudo cargar la información de facturación.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadBillingState = async () => {
-    if (!activeCenterId) {
-      setBillingState(null);
-      setBillingStateLoading(false);
-      return;
-    }
-
-    setBillingStateLoading(true);
-    setPortalError(null);
-
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) {
-        throw new Error("No hay sesion activa.");
-      }
-
-      const response = await fetch("/api/center/billing-state", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = (await response.json()) as BillingState & { error?: string };
-
-      if (!response.ok) {
-        throw new Error(data.error || "No se pudo cargar el estado del plan.");
-      }
-
-      setBillingState(data);
-    } catch (loadError) {
-      console.error("No se pudo cargar el estado del plan:", loadError);
-      setBillingState(null);
-      setPortalError("No se pudo cargar el estado del plan.");
-    } finally {
-      setBillingStateLoading(false);
-    }
-  };
-
-  const openCustomerPortal = async () => {
-    setPortalLoading(true);
-    setPortalError(null);
-
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) {
-        throw new Error("No hay sesion activa.");
-      }
-
-      const response = await fetch("/api/stripe/create-customer-portal-session", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = (await response.json()) as { url?: string; error?: string };
-
-      if (!response.ok || !data.url) {
-        throw new Error(data.error || "No se pudo abrir el portal de facturacion.");
-      }
-
-      window.location.href = data.url;
-    } catch (openError) {
-      console.error("No se pudo abrir el portal de facturacion:", openError);
-      setPortalError("No se pudo abrir el portal de facturación.");
-    } finally {
-      setPortalLoading(false);
     }
   };
 
@@ -469,7 +364,6 @@ export default function CenterBillingPage() {
       return;
     }
 
-    void loadBillingState();
 
     if (moduleLoading) {
       return;
@@ -724,13 +618,13 @@ export default function CenterBillingPage() {
   return (
     <main className="min-h-screen bg-brand-background text-brand-text">
       <CenterHeader
-        title="Mi plan"
+        title="Facturación"
         subtitle={`Centro activo: ${activeCenterName ?? "Sin centro activo"}`}
         backHref="/dashboard/center"
         primaryActionLabel={isBillingModuleEnabled ? "Generar cargos del mes" : undefined}
         onPrimaryAction={isBillingModuleEnabled ? onGenerateMonthCharges : undefined}
       />
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError && (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {guardError}
@@ -746,11 +640,6 @@ export default function CenterBillingPage() {
             {info}
           </p>
         )}
-        {portalError && (
-          <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
-            {portalError}
-          </p>
-        )}
         {moduleError && (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             No se pudo comprobar el acceso al módulo de facturación: {moduleError}
@@ -763,12 +652,12 @@ export default function CenterBillingPage() {
         )}
         {activeCenterId && !moduleLoading && !moduleError && !isBillingModuleEnabled && (
           <section className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
-            El módulo de facturación no está activado en este centro. La gestión del plan sigue disponible arriba; para activar facturación operativa vuelve al panel y abre Gestionar módulos.
+            El módulo de facturación no está activado en este centro. Vuelve al panel y abre Gestionar módulos para activar la gestión económica.
           </section>
         )}
 
       {memberships.length > 1 && (
-        <section className="max-w-xl rounded-2xl border border-brand-border bg-white/60 p-4">
+        <section className="w-full rounded-2xl border border-brand-border bg-white/60 p-4">
           <label htmlFor="center-selector" className="mb-2 block text-sm text-brand-secondary">
             Cambiar centro activo
           </label>
@@ -793,59 +682,6 @@ export default function CenterBillingPage() {
         </section>
       ) : (
         <>
-          <section className="rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-secondary">
-                  Suscripción Equidata
-                </p>
-                <h2 className="mt-1 text-lg font-semibold text-brand-text">
-                  {billingStateLoading
-                    ? "Cargando suscripción..."
-                    : billingState?.planId
-                      ? `Plan: ${planLabels[billingState.planId]}`
-                      : "Sin plan activo"}
-                </h2>
-                <p className="mt-1 text-sm text-brand-secondary">
-                  Estado: {billingState?.subscriptionStatus ?? billingState?.status ?? "-"}
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <article className="rounded-xl border border-brand-border bg-brand-background/60 p-3">
-                  <p className="text-xs uppercase text-brand-secondary">Renovación</p>
-                  <p className="mt-1 text-sm font-semibold text-brand-text">
-                    {renewalLabel(billingState?.currentPeriodEnd ?? null)}
-                  </p>
-                </article>
-                <article className="rounded-xl border border-brand-border bg-brand-background/60 p-3">
-                  <p className="text-xs uppercase text-brand-secondary">Caballos</p>
-                  <p className="mt-1 text-sm font-semibold text-brand-text">
-                    {billingState
-                      ? limitLabel(billingState.horseCount, billingState.horseLimit)
-                      : "-"}
-                  </p>
-                </article>
-                <article className="rounded-xl border border-brand-border bg-brand-background/60 p-3">
-                  <p className="text-xs uppercase text-brand-secondary">Funcionalidades</p>
-                  <p className="mt-1 text-sm font-semibold text-brand-text">
-                    {billingState
-                      ? limitLabel(billingState.enabledModules.length, billingState.featureLimit)
-                      : "-"}
-                  </p>
-                </article>
-                <button
-                  type="button"
-                  onClick={openCustomerPortal}
-                  disabled={portalLoading}
-                  className="inline-flex min-h-16 items-center justify-center rounded-xl bg-brand-primary px-4 text-sm font-semibold text-white transition hover:bg-brand-primaryHover disabled:opacity-60"
-                >
-                  {portalLoading ? "Abriendo portal de facturación..." : "Gestionar suscripción"}
-                </button>
-              </div>
-            </div>
-          </section>
-
           {isBillingModuleEnabled && (
           <>
           <section className="rounded-2xl border border-brand-border bg-white/60 p-4 space-y-4">
@@ -956,15 +792,15 @@ export default function CenterBillingPage() {
                   onChange={(event) => setSummaryRange(Number(event.target.value) as 6 | 12 | 24)}
                   className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
                 >
-                  <option value={6}>Ultimos 6 meses</option>
-                  <option value={12}>Ultimos 12 meses</option>
-                  <option value={24}>Ultimos 24 meses</option>
+                  <option value={6}>Últimos 6 meses</option>
+                  <option value={12}>Últimos 12 meses</option>
+                  <option value={24}>Últimos 24 meses</option>
                 </select>
               )}
             </div>
 
             {loading ? (
-              <p className="text-sm text-brand-secondary">Cargando facturacion...</p>
+              <p className="text-sm text-brand-secondary">Cargando facturación...</p>
             ) : tab === "PORTFOLIO" ? (
               <BillingCustomersPanel centerId={activeCenterId} />
             ) : tab === "CLIENTS" ? (
@@ -981,7 +817,7 @@ export default function CenterBillingPage() {
                         <th className="py-2 pr-4">Horse stays activos</th>
                         <th className="py-2 pr-4">Importe mes</th>
                         <th className="py-2 pr-4">Estado global</th>
-                        <th className="py-2 pr-4">Proximo vencimiento</th>
+                        <th className="py-2 pr-4">Próximo vencimiento</th>
                         <th className="py-2 pr-4">Acciones</th>
                       </tr>
                     </thead>
@@ -1116,7 +952,7 @@ export default function CenterBillingPage() {
                       onChange={(event) =>
                         setExpenseForm((prev) => ({ ...prev, description: event.target.value }))
                       }
-                      placeholder="Descripcion"
+                      placeholder="Descripción"
                       className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm md:col-span-2"
                       required
                     />
@@ -1134,7 +970,7 @@ export default function CenterBillingPage() {
                       onChange={(event) =>
                         setExpenseForm((prev) => ({ ...prev, method: event.target.value }))
                       }
-                      placeholder="Metodo"
+                      placeholder="Método"
                       className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
                     />
                     <input
@@ -1176,8 +1012,8 @@ export default function CenterBillingPage() {
                           <tr className="border-b border-brand-border text-left text-brand-secondary">
                             <th className="py-2 pr-4">Fecha</th>
                             <th className="py-2 pr-4">Categoria</th>
-                            <th className="py-2 pr-4">Descripcion</th>
-                            <th className="py-2 pr-4">Metodo</th>
+                            <th className="py-2 pr-4">Descripción</th>
+                            <th className="py-2 pr-4">Método</th>
                             <th className="py-2 pr-4">Importe</th>
                             <th className="py-2 pr-4">Acciones</th>
                           </tr>
@@ -1315,7 +1151,7 @@ export default function CenterBillingPage() {
                             {toDateTimeLabel(paymentDate(payment))}
                           </p>
                         </div>
-                        <p className="text-brand-secondary">Metodo: {payment.method || "manual"}</p>
+                        <p className="text-brand-secondary">Método: {payment.method || "manual"}</p>
                         {payment.notes && (
                           <p className="text-xs text-brand-secondary">Notas: {payment.notes}</p>
                         )}
@@ -1416,7 +1252,7 @@ export default function CenterBillingPage() {
                       onChange={(event) =>
                         setPaymentForm((prev) => ({ ...prev, method: event.target.value }))
                       }
-                      placeholder="Metodo"
+                      placeholder="Método"
                       className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm"
                     />
                     <input
@@ -1438,7 +1274,7 @@ export default function CenterBillingPage() {
                 </section>
 
                 <section className="rounded-2xl border border-brand-border bg-brand-background/40 p-4 space-y-3">
-                  <h3 className="text-lg font-semibold">Anadir cargo puntual</h3>
+                  <h3 className="text-lg font-semibold">Añadir cargo puntual</h3>
                   <form onSubmit={onSubmitOneOffCharge} className="grid gap-2 md:grid-cols-2">
                     <input
                       type="text"
@@ -1446,7 +1282,7 @@ export default function CenterBillingPage() {
                       onChange={(event) =>
                         setOneOffForm((prev) => ({ ...prev, description: event.target.value }))
                       }
-                      placeholder="Descripcion"
+                      placeholder="Descripción"
                       className="rounded border border-brand-border bg-brand-background/60 p-2 text-sm md:col-span-2"
                       required
                     />

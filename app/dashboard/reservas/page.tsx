@@ -16,6 +16,7 @@ import {
   getClassesByCenter,
   getReservationsByCenter,
   getReservationsByClass,
+  getStudents,
 } from "@/lib/services";
 
 type FiltersState = {
@@ -45,7 +46,7 @@ const formatClassWindow = (classItem?: Class) => {
     day: "2-digit",
     month: "short",
     year: "numeric",
-  })} · ${classItem.startTime} - ${classItem.endTime}`;
+  })} - ${classItem.startTime} - ${classItem.endTime}`;
 };
 
 const toDateKey = (value?: Date | null) => {
@@ -137,7 +138,14 @@ export default function DashboardReservationsPage() {
             ? await getReservationsByClass(activeCenterId, filters.classId)
             : await getReservationsByCenter(activeCenterId);
 
-        const riderMap = await loadUserNames(reservations.map((reservation) => reservation.riderId));
+        const [userNames, students] = await Promise.all([
+          loadUserNames(reservations.map((reservation) => reservation.riderId)),
+          getStudents(activeCenterId),
+        ]);
+        const riderMap = new Map(userNames);
+        students.forEach((student) => {
+          riderMap.set(student.id, `${student.firstName} ${student.lastName}`.trim());
+        });
         setRows(mapRows(reservations, classMap, riderMap));
       } catch (loadError) {
         console.error(loadError);
@@ -184,7 +192,7 @@ export default function DashboardReservationsPage() {
         backHref="/dashboard/center"
       />
 
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError ? (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">{guardError}</p>
         ) : null}

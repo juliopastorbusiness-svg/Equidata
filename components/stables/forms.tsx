@@ -34,7 +34,7 @@ const helperError = (message?: string) =>
 type HorseFormProps = {
   mode: "create" | "edit";
   ownerOptions: CenterPersonOption[];
-  defaultHorse?: Horse | null;
+  defaultHorse?: Partial<Horse> | null;
   submitting?: boolean;
   onSubmit: (values: HorseFormValues, photoFile: File | null) => Promise<void>;
   onDelete?: () => Promise<void>;
@@ -87,8 +87,34 @@ export function HorseForm({
     formState: { errors },
   } = form;
 
+  const handleHorseSubmit = (values: HorseFormValues) => {
+    if (mode === "edit") {
+      return onSubmit(values, photoFile);
+    }
+
+    return onSubmit(
+      {
+        ...values,
+        veterinarianName: "",
+        farrierName: "",
+        trainerName: "",
+        nextFarrierVisitAt: "",
+        ownerContactName: "",
+        ownerContactPhone: "",
+        ownerContactEmail: "",
+        veterinarianContactName: "",
+        veterinarianContactPhone: "",
+        veterinarianContactEmail: "",
+        farrierContactName: "",
+        farrierContactPhone: "",
+        farrierContactEmail: "",
+      },
+      photoFile
+    );
+  };
+
   return (
-    <form onSubmit={handleSubmit((values) => onSubmit(values, photoFile))} className="space-y-8">
+    <form onSubmit={handleSubmit(handleHorseSubmit)} className="space-y-8">
       <section className="grid gap-4 rounded-3xl border border-brand-border bg-white/80 p-5 shadow-sm md:grid-cols-2">
         <div>
           <label className="text-sm font-medium text-brand-secondary">Nombre</label>
@@ -169,61 +195,6 @@ export function HorseForm({
         <div className="md:col-span-2">
           <label className="text-sm font-medium text-brand-secondary">Observaciones</label>
           <textarea rows={4} {...register("notes")} className={textareaClassName} />
-        </div>
-      </section>
-
-      <section className="grid gap-4 rounded-3xl border border-brand-border bg-white/80 p-5 shadow-sm md:grid-cols-2">
-        <div>
-          <label className="text-sm font-medium text-brand-secondary">Propietario</label>
-          <input {...register("ownerContactName")} className={inputClassName} />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-brand-secondary">Telefono propietario</label>
-          <input {...register("ownerContactPhone")} className={inputClassName} />
-        </div>
-        <div className="md:col-span-2">
-          <label className="text-sm font-medium text-brand-secondary">Email propietario</label>
-          <input {...register("ownerContactEmail")} className={inputClassName} />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-brand-secondary">Veterinario</label>
-          <input {...register("veterinarianName")} className={inputClassName} />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-brand-secondary">Contacto veterinario</label>
-          <input {...register("veterinarianContactName")} className={inputClassName} />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-brand-secondary">Telefono veterinario</label>
-          <input {...register("veterinarianContactPhone")} className={inputClassName} />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-brand-secondary">Email veterinario</label>
-          <input {...register("veterinarianContactEmail")} className={inputClassName} />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-brand-secondary">Herrador</label>
-          <input {...register("farrierName")} className={inputClassName} />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-brand-secondary">Proxima visita herrador</label>
-          <input type="date" {...register("nextFarrierVisitAt")} className={inputClassName} />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-brand-secondary">Contacto herrador</label>
-          <input {...register("farrierContactName")} className={inputClassName} />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-brand-secondary">Telefono herrador</label>
-          <input {...register("farrierContactPhone")} className={inputClassName} />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-brand-secondary">Email herrador</label>
-          <input {...register("farrierContactEmail")} className={inputClassName} />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-brand-secondary">Entrenador</label>
-          <input {...register("trainerName")} className={inputClassName} />
         </div>
       </section>
 

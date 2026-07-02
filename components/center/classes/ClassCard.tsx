@@ -53,7 +53,7 @@ export function ClassCard({
         <p>Nivel: {item.requiredLevel}</p>
         <p>Capacidad: {item.capacity}</p>
         <p>Caballos: {horseLabels.length > 0 ? horseLabels.join(", ") : "Sin caballos"}</p>
-        <p>Alumnos: {studentLabels.length > 0 ? studentLabels.join(", ") : "Sin alumnos"}</p>
+        <p>Clientes: {studentLabels.length > 0 ? studentLabels.join(", ") : "Sin clientes"}</p>
       </div>
       {item.description && <p className="mt-3 text-sm text-brand-secondary">{item.description}</p>}
     </article>

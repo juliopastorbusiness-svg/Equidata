@@ -33,6 +33,22 @@ export type ModuleRegistry = {
   [key in ModuleId]: ModuleConfig;
 };
 
+export const MODULES_VISIBILITY: Partial<Record<ModuleId | "students", boolean>> = {
+  alumnos: false,
+  students: false,
+  paddocks: false,
+};
+
+export function isModuleVisible(moduleId: ModuleId): boolean {
+  return MODULES_VISIBILITY[moduleId] ?? true;
+}
+
+export function getVisibleModules(
+  registry: ModuleRegistry = MODULE_REGISTRY
+): ModuleConfig[] {
+  return Object.values(registry).filter((module) => isModuleVisible(module.id));
+}
+
 /**
  * Definición de todos los módulos disponibles
  * Orden: importancia + categoría
@@ -105,7 +121,7 @@ export const MODULE_REGISTRY: ModuleRegistry = {
   clases: {
     id: "clases",
     title: "Clases",
-    description: "Clases, alumnos, caballos y capacidad.",
+    description: "Clases, clientes, caballos y capacidad.",
     icon: "🎓",
     href: "/dashboard/clases",
     category: "educational",

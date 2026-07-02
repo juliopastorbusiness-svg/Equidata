@@ -250,7 +250,7 @@ export default function CenterTasksPage() {
           document.getElementById("task-title")?.focus();
         }}
       />
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError && (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {guardError}
@@ -263,7 +263,7 @@ export default function CenterTasksPage() {
         )}
 
       {memberships.length > 1 && (
-        <section className="max-w-xl rounded-2xl border border-brand-border bg-white/60 p-4">
+        <section className="w-full rounded-2xl border border-brand-border bg-white/60 p-4">
           <label htmlFor="center-selector" className="mb-2 block text-sm text-brand-secondary">
             Cambiar centro activo
           </label>
@@ -434,7 +434,7 @@ export default function CenterTasksPage() {
                         <span>
                           Vence: {task.dueDate ? task.dueDate.toDate().toLocaleDateString("es-ES") : "-"}
                         </span>
-                        <span>�</span>
+                        <span>ï¿½</span>
                         <span>
                           Actualizada: {task.updatedAt ? task.updatedAt.toDate().toLocaleString("es-ES") : "-"}
                         </span>

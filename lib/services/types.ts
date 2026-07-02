@@ -56,6 +56,7 @@ export type ArenaBookingStatus = "active" | "cancelled" | "completed";
 export type BillingCustomerFinancialStatus = "pending" | "paid" | "credit";
 export type BillingMovementType = "expense" | "payment";
 export type BillingPaymentMethod = "cash" | "transfer" | "card" | "other";
+export type ClientStatus = "ACTIVE" | "INACTIVE" | "LEAD";
 
 export type UserProfile = AuditFields & {
   uid: string;
@@ -346,6 +347,20 @@ export type BillingMovement = AuditFields & {
   reference?: string;
   createdBy: string;
   updatedBy?: string;
+};
+
+export type Client = AuditFields & {
+  id: string;
+  centerId: string;
+  fullName: string;
+  phone?: string;
+  email?: string;
+  dni?: string;
+  address?: string;
+  status: ClientStatus;
+  isStudent: boolean;
+  isOwner: boolean;
+  notes?: string;
 };
 
 export type DateRange = {

@@ -121,7 +121,7 @@ export default function CenterDetailPage() {
 
   return (
     <main className="min-h-screen bg-brand-background text-brand-text">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-6 sm:px-6">
+      <div className="app-shell">
         <header className="rounded-3xl border border-brand-border bg-white/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -130,7 +130,7 @@ export default function CenterDetailPage() {
               </Link>
               <h1 className="mt-3 text-3xl font-semibold">{center.name}</h1>
               <p className="mt-2 text-sm text-brand-secondary">
-                {[center.address, center.city, center.province].filter(Boolean).join(" · ") ||
+                {[center.address, center.city, center.province].filter(Boolean).join(" Â· ") ||
                   "Centro sin direccion completada"}
               </p>
             </div>

@@ -139,7 +139,7 @@ export default function RiderClassesPage() {
 
   return (
     <main className="min-h-screen bg-brand-background text-brand-text">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6">
+      <div className="app-shell">
         <header className="rounded-[2rem] border border-brand-border bg-white/85 p-6 shadow-sm">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>

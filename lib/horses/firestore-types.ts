@@ -32,6 +32,7 @@ export type FirestoreHorseDoc = {
   name: string;
   status: HorseStatus;
   ownerId?: string | null;
+  ownerName?: string | null;
   riderId?: string | null;
   stableId?: string | null;
   breed?: string | null;

@@ -15,6 +15,7 @@ import {
   AssignmentStatus,
   ClassLevel,
   ClassStatus,
+  ClientStatus,
   CompetitionStatus,
   EventStatus,
   EventType,
@@ -121,6 +122,21 @@ export type FirestoreBillingMovementDoc = {
   reference?: string | null;
   createdBy?: string | null;
   updatedBy?: string | null;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+};
+
+export type FirestoreClientDoc = {
+  centerId?: string | null;
+  fullName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  dni?: string | null;
+  address?: string | null;
+  status?: ClientStatus | string | null;
+  isStudent?: boolean | null;
+  isOwner?: boolean | null;
+  notes?: string | null;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };

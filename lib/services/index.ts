@@ -17,3 +17,4 @@ export * from "@/lib/services/arenaService";
 export * from "@/lib/services/arenaBookingService";
 export * from "@/lib/services/reservationService";
 export * from "@/lib/services/billingCustomerService";
+export * from "@/lib/services/clientService";

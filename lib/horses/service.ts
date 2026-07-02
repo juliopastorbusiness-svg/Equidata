@@ -19,7 +19,7 @@ import {
   ref,
   uploadBytes,
 } from "firebase/storage";
-import { auth, db, storage } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import {
   FirestoreHorseAlertDoc,
   FirestoreHorseDoc,
@@ -113,6 +113,7 @@ const normalizeHorseWrite = (
 
   if ("status" in payload) next.status = normalizeHorseStatus(payload.status);
   if ("ownerId" in payload) next.ownerId = trimOrNull(payload.ownerId);
+  if ("ownerName" in payload) next.ownerName = trimOrNull(payload.ownerName);
   if ("riderId" in payload) next.riderId = trimOrNull(payload.riderId);
   if ("stableId" in payload) next.stableId = trimOrNull(payload.stableId);
   if ("breed" in payload) next.breed = trimOrNull(payload.breed);
@@ -224,6 +225,12 @@ type UserDoc = {
   email?: string;
 };
 
+type ClientDoc = {
+  centerId?: string | null;
+  fullName?: string | null;
+  isOwner?: boolean | null;
+};
+
 type HorseStayDoc = {
   horseId?: string;
   riderUid?: string;
@@ -239,6 +246,8 @@ const horseStaysCollection = (centerId: string) =>
   collection(db, "centers", centerId, "horseStays");
 
 const usersCollection = () => collection(db, "users");
+
+const clientsCollection = () => collection(db, "clients");
 
 const chooseWindowDays = (daysUntilDue: number): number | null => {
   if (daysUntilDue <= 7) return 7;
@@ -372,6 +381,27 @@ export const getHorseById = async (
   );
 };
 
+export const getHorsesByOwner = async (
+  centerId: string,
+  ownerId: string
+): Promise<Horse[]> => {
+  const normalizedCenterId = assertId("centerId", centerId);
+  const normalizedOwnerId = assertId("ownerId", ownerId);
+  const snapshot = await getDocs(
+    query(centerHorseCollection(normalizedCenterId), where("ownerId", "==", normalizedOwnerId))
+  );
+
+  return snapshot.docs
+    .map((horseSnapshot) =>
+      mapHorse(
+        horseSnapshot.id,
+        horseSnapshot.data() as FirestoreHorseDoc,
+        normalizedCenterId
+      )
+    )
+    .sort((left, right) => left.name.localeCompare(right.name, "es"));
+};
+
 export const createHorse = async (
   centerId: string,
   payload: CreateHorseInput
@@ -383,39 +413,16 @@ export const createHorse = async (
     throw new Error("El nombre del caballo es obligatorio.");
   }
 
-  const token = await auth.currentUser?.getIdToken();
-  if (!token) {
-    throw new Error("Debes iniciar sesion para crear caballos.");
-  }
-
-  const response = await fetch("/api/center/horses", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      centerId: normalizedCenterId,
-      horse: {
-        ...nextHorse,
-        status: nextHorse.status ?? "ACTIVE",
-        sex: nextHorse.sex ?? "UNKNOWN",
-      },
-    }),
+  const docRef = await addDoc(centerHorseCollection(normalizedCenterId), {
+    ...nextHorse,
+    status: nextHorse.status ?? "ACTIVE",
+    sex: nextHorse.sex ?? "UNKNOWN",
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 
-  const data = (await response.json()) as {
-    horseId?: string;
-    error?: string;
-    code?: string;
-  };
-
-  if (!response.ok || !data.horseId) {
-    throw new Error(data.error || "No se pudo crear el caballo.");
-  }
-
-  await recalculateHorseAlerts(normalizedCenterId, data.horseId);
-  return data.horseId;
+  await recalculateHorseAlerts(normalizedCenterId, docRef.id);
+  return docRef.id;
 };
 
 export const updateHorse = async (
@@ -968,6 +975,18 @@ export const getHorseListItemsByCenter = async (
     getDocs(query(horseStaysCollection(normalizedCenterId), where("active", "==", true))),
   ]);
 
+  const clientsSnapshot = await getDocs(
+    query(clientsCollection(), where("centerId", "==", normalizedCenterId))
+  );
+  const clientLabelMap = new Map<string, string>();
+  clientsSnapshot.docs.forEach((clientDoc) => {
+    const data = clientDoc.data() as ClientDoc;
+    const label = data.fullName?.trim();
+    if (label) {
+      clientLabelMap.set(clientDoc.id, label);
+    }
+  });
+
   const memberLabelMap = new Map<string, string>();
   membersSnapshot.docs.forEach((memberDoc) => {
     const data = memberDoc.data() as CenterMemberDoc;
@@ -991,7 +1010,7 @@ export const getHorseListItemsByCenter = async (
   });
 
   horses.forEach((horse) => {
-    if (horse.ownerId && !memberLabelMap.has(horse.ownerId)) {
+    if (horse.ownerId && !memberLabelMap.has(horse.ownerId) && !clientLabelMap.has(horse.ownerId)) {
       missingUserIds.add(horse.ownerId);
     }
   });
@@ -1023,9 +1042,12 @@ export const getHorseListItemsByCenter = async (
     const stay = stayMap.get(horse.id);
     const ownerId = horse.ownerId ?? stay?.riderUid;
     const ownerLabel =
-      (ownerId ? memberLabelMap.get(ownerId) ?? userLabelMap.get(ownerId) : null) ??
+      (ownerId
+        ? clientLabelMap.get(ownerId) ?? memberLabelMap.get(ownerId) ?? userLabelMap.get(ownerId)
+        : null) ??
+      horse.ownerName?.trim() ??
       horse.ownerContact?.name?.trim() ??
-      "Sin propietario";
+      "Sin propietario asignado";
 
     return {
       horse,
@@ -1042,7 +1064,10 @@ export const getCenterPersonOptions = async (
   centerId: string
 ): Promise<CenterPersonOption[]> => {
   const normalizedCenterId = assertId("centerId", centerId);
-  const membersSnapshot = await getDocs(centerMembersCollection(normalizedCenterId));
+  const [membersSnapshot, clientsSnapshot] = await Promise.all([
+    getDocs(centerMembersCollection(normalizedCenterId)),
+    getDocs(query(clientsCollection(), where("centerId", "==", normalizedCenterId))),
+  ]);
   const memberIds = membersSnapshot.docs.map((memberDoc) => {
     const data = memberDoc.data() as CenterMemberDoc & { userId?: string; uid?: string; status?: string };
     return data.userId?.trim() || data.uid?.trim() || memberDoc.id;
@@ -1069,7 +1094,7 @@ export const getCenterPersonOptions = async (
     );
   });
 
-  return membersSnapshot.docs
+  const memberOptions = membersSnapshot.docs
     .map((memberDoc) => {
       const data = memberDoc.data() as CenterMemberDoc & { userId?: string; uid?: string; status?: string };
       const userId = data.userId?.trim() || data.uid?.trim() || memberDoc.id;
@@ -1081,7 +1106,22 @@ export const getCenterPersonOptions = async (
           userLabelMap.get(userId) ||
           userId,
       };
+    });
+
+  const clientOptions = clientsSnapshot.docs
+    .map((clientDoc) => {
+      const data = clientDoc.data() as ClientDoc;
+      const label = data.fullName?.trim();
+      if (data.isOwner !== true || !label) return null;
+
+      return {
+        id: clientDoc.id,
+        label,
+      };
     })
+    .filter((item): item is CenterPersonOption => item !== null);
+
+  return [...clientOptions, ...memberOptions]
     .filter((item, index, items) => items.findIndex((candidate) => candidate.id === item.id) === index)
     .sort((left, right) => left.label.localeCompare(right.label, "es"));
 };

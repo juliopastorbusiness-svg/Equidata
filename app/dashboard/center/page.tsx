@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { useRequireCenterRole } from "@/lib/hooks/useRequireCenterRole";
-import { MODULE_REGISTRY, ModuleId } from "@/lib/modules/moduleConfig";
+import { getVisibleModules, ModuleId } from "@/lib/modules/moduleConfig";
 import { ModuleService } from "@/lib/services/moduleService";
 import { ManageModulesModal } from "@/components/dashboard/center/ManageModulesModal";
 import { CenterSidebar } from "@/components/dashboard/CenterSidebar";
@@ -199,7 +199,7 @@ export default function CenterDashboardPage() {
         )}
 
         {memberships.length > 1 && (
-          <section className="max-w-xl rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
+          <section className="w-full rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
             <label
               htmlFor="center-selector"
               className="mb-2 block text-sm font-medium text-brand-secondary"
@@ -246,7 +246,7 @@ export default function CenterDashboardPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  {Object.values(MODULE_REGISTRY)
+                  {getVisibleModules()
                     .filter((module) => enabledModules.includes(module.id))
                     .map((module) => (
                       <ModuleCard

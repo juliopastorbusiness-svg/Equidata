@@ -88,7 +88,7 @@ function Modal({
             aria-label="Cerrar ventana"
             className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-brand-border text-brand-text"
           >
-            ×
+            Ã—
           </button>
         </div>
         {children}
@@ -351,12 +351,12 @@ export default function CenterArenasPage() {
           setIsArenaModalOpen(true);
         }}
       />
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError && <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">{guardError}</p>}
         {error && <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">{error}</p>}
 
         {memberships.length > 1 && (
-          <section className="max-w-xl rounded-2xl border border-brand-border bg-white/60 p-4">
+          <section className="w-full rounded-2xl border border-brand-border bg-white/60 p-4">
             <label htmlFor="center-selector" className="mb-2 block text-sm text-brand-secondary">Cambiar centro activo</label>
             <select id="center-selector" value={activeCenterId ?? ""} onChange={(event) => setActiveCenterId(event.target.value)} className="h-11 w-full rounded-xl border border-brand-border bg-brand-background px-3 text-sm">
               {memberships.map((membership) => <option key={membership.centerId} value={membership.centerId}>{membership.centerName} ({membership.role})</option>)}
@@ -396,7 +396,7 @@ export default function CenterArenasPage() {
                           <button type="button" onClick={() => setArenaId(arena.id)} className="font-semibold">{arena.name}</button>
                           <span className="text-xs">{arena.isActive ? "Activa" : "Inactiva"}</span>
                         </div>
-                        <p className="text-xs text-brand-secondary">{arena.type || "-"} · {arena.surface || "-"}</p>
+                        <p className="text-xs text-brand-secondary">{arena.type || "-"} Â· {arena.surface || "-"}</p>
                         <div className="mt-2 flex gap-2">
                           <button
                             type="button"
@@ -450,7 +450,7 @@ export default function CenterArenasPage() {
                         <p className="text-sm font-semibold">{label}</p>
                         {slotsByDay[dayIndex].length === 0 ? <p className="text-xs text-brand-secondary">Sin slots</p> : slotsByDay[dayIndex].map((slot) => (
                           <div key={slot.id} className="mt-1 flex items-center justify-between rounded border border-brand-border p-2 text-xs">
-                            <span>{slot.startTime}-{slot.endTime} · max {slot.maxHorses}</span>
+                            <span>{slot.startTime}-{slot.endTime} Â· max {slot.maxHorses}</span>
                             <div className="flex gap-1">
                               <button
                                 type="button"
@@ -586,7 +586,7 @@ export default function CenterArenasPage() {
                       <div key={booking.id} className="rounded border border-brand-border p-3 text-sm">
                         <div className="flex items-center justify-between gap-2">
                           <p className="font-semibold">
-                            {arenaName} · {booking.startTime}-{booking.endTime}
+                            {arenaName} Â· {booking.startTime}-{booking.endTime}
                           </p>
                           <span
                             className={`rounded px-2 py-1 text-xs ${
@@ -599,7 +599,7 @@ export default function CenterArenasPage() {
                           </span>
                         </div>
                         <p className="text-xs text-brand-secondary">
-                          horseId: {booking.horseId} · riderUid: {booking.riderUid}
+                          horseId: {booking.horseId} Â· riderUid: {booking.riderUid}
                         </p>
                         <p className="text-xs text-brand-secondary">
                           bookedBy: {booking.bookedByUid} ({booking.bookedByRole})

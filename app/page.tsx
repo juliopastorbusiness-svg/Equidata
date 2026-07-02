@@ -46,7 +46,7 @@ const features: Feature[] = [
   },
   {
     icon: "👨‍🏫",
-    title: "Alumnos",
+    title: "Clientes",
     description: "Clientes, clases y actividad reciente centralizadas.",
   },
 ];
@@ -333,7 +333,7 @@ function ShowcaseMockup() {
             <div className="mx-auto flex max-w-xl items-center justify-center">
               <div>
                 <h3 className="font-serif text-xl uppercase tracking-[0.18em] text-brand-text sm:text-2xl">Centrohipico</h3>
-                <p className="text-xs font-bold text-brand-secondary">Panel del centro - 13 modulos activos</p>
+                <p className="text-xs font-bold text-brand-secondary">Panel del centro - modulos activos</p>
               </div>
             </div>
           </div>
@@ -346,21 +346,28 @@ function ShowcaseMockup() {
             <div className="rounded-2xl border border-brand-border bg-white/78 p-4 shadow-[0_14px_40px_rgba(31,31,31,0.08)]">
               <p className="mb-4 text-sm font-semibold text-brand-secondary">Gestiona todos los modulos activos del centro.</p>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {moduleCards.map(([icon, title, description]) => (
+                {moduleCards
+                  .filter(([, title]) => title !== "Paddocks")
+                  .map(([icon, title, description]) => {
+                    const visibleTitle = title === "Alumnos" ? "Clientes" : title;
+                    const visibleDescription = description.replace("Alumnos", "Clientes");
+
+                    return (
                   <div
-                    key={title}
+                    key={visibleTitle}
                     className="group flex min-h-[5.75rem] items-center gap-4 rounded-2xl border border-brand-border bg-white px-4 py-3 shadow-[0_8px_20px_rgba(31,31,31,0.08)] transition hover:-translate-y-0.5 hover:border-brand-primary/30 hover:shadow-[0_18px_36px_rgba(31,31,31,0.12)]"
                   >
                     <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-brand-border bg-[#F4F1EA] text-xl">
                       {icon}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-lg font-black text-brand-text">{title}</p>
-                      <p className="mt-1 line-clamp-1 text-sm text-brand-secondary">{description}</p>
+                      <p className="truncate text-lg font-black text-brand-text">{visibleTitle}</p>
+                      <p className="mt-1 line-clamp-1 text-sm text-brand-secondary">{visibleDescription}</p>
                     </div>
                     <span className="text-lg text-brand-secondary transition group-hover:translate-x-1">›</span>
                   </div>
-                ))}
+                    );
+                  })}
               </div>
             </div>
 

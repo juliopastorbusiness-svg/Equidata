@@ -7,6 +7,7 @@ import {
   FirestoreCenterMemberDoc,
   FirestoreClassDoc,
   FirestoreClassReservationDoc,
+  FirestoreClientDoc,
   FirestoreCompetitionDoc,
   FirestoreEventDoc,
   FirestoreHorseTreatmentDoc,
@@ -28,6 +29,7 @@ import {
   CenterClass,
   Class,
   ClassReservation,
+  Client,
   Competition,
   Event,
   HorseTreatment,
@@ -152,6 +154,13 @@ const normalizeBillingPaymentMethod = (
     return value;
   }
   return undefined;
+};
+
+const normalizeClientStatus = (status?: string | null): Client["status"] => {
+  if (status === "ACTIVE" || status === "INACTIVE" || status === "LEAD") {
+    return status;
+  }
+  return "ACTIVE";
 };
 
 const normalizeCenterEventSourceType = (
@@ -318,6 +327,22 @@ export const mapBillingMovement = (
   reference: data.reference?.trim() || undefined,
   createdBy: data.createdBy?.trim() || "",
   updatedBy: data.updatedBy?.trim() || undefined,
+  createdAt: data.createdAt,
+  updatedAt: data.updatedAt,
+});
+
+export const mapClient = (id: string, data: FirestoreClientDoc): Client => ({
+  id,
+  centerId: data.centerId?.trim() || "",
+  fullName: data.fullName?.trim() || "Cliente sin nombre",
+  phone: data.phone?.trim() || undefined,
+  email: data.email?.trim() || undefined,
+  dni: data.dni?.trim() || undefined,
+  address: data.address?.trim() || undefined,
+  status: normalizeClientStatus(data.status),
+  isStudent: data.isStudent === true,
+  isOwner: data.isOwner === true,
+  notes: data.notes?.trim() || undefined,
   createdAt: data.createdAt,
   updatedAt: data.updatedAt,
 });

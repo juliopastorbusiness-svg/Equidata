@@ -86,7 +86,7 @@ export default function DashboardClassDetailPage() {
         backHref="/dashboard/clases"
       />
 
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError ? (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">{guardError}</p>
         ) : null}
@@ -106,7 +106,7 @@ export default function DashboardClassDetailPage() {
                   <p className="text-sm uppercase tracking-[0.2em] text-brand-secondary">{item.discipline}</p>
                   <h1 className="mt-2 text-3xl font-semibold">{item.title}</h1>
                   <p className="mt-2 text-sm text-brand-secondary">
-                    {item.date.toDate().toLocaleDateString("es-ES")} · {item.startTime} - {item.endTime}
+                    {item.date.toDate().toLocaleDateString("es-ES")} Â· {item.startTime} - {item.endTime}
                   </p>
                 </div>
                 <ClassSpotsBadge item={item} />

@@ -71,6 +71,7 @@ export const mapHorse = (
   name: data.name,
   status: data.status,
   ownerId: data.ownerId ?? undefined,
+  ownerName: data.ownerName ?? undefined,
   riderId: data.riderId ?? undefined,
   stableId: data.stableId ?? undefined,
   breed: data.breed ?? undefined,

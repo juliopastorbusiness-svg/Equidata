@@ -83,7 +83,7 @@ function CenterMedicationDetailPageContent() {
       setTreatments(nextTreatments);
       setHorses(nextHorses);
       if (!nextMedication) {
-        setError("No se encontró el medicamento.");
+        setError("No se encontrÃ³ el medicamento.");
       }
     } catch (loadError) {
       console.error(loadError);
@@ -124,7 +124,7 @@ function CenterMedicationDetailPageContent() {
         backHref="/dashboard/center/medications"
       />
 
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError && (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {guardError}
@@ -137,7 +137,7 @@ function CenterMedicationDetailPageContent() {
         )}
 
         {memberships.length > 1 && (
-          <section className="max-w-xl rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
+          <section className="w-full rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
             <label htmlFor="center-selector" className="mb-2 block text-sm text-brand-secondary">
               Cambiar centro activo
             </label>
@@ -158,7 +158,7 @@ function CenterMedicationDetailPageContent() {
 
         {!activeCenterId || !medication ? (
           <section className="rounded-2xl border border-brand-border bg-white/70 p-5 text-sm text-brand-secondary">
-            No se encontró el medicamento solicitado.
+            No se encontrÃ³ el medicamento solicitado.
           </section>
         ) : (
           <>
@@ -166,7 +166,7 @@ function CenterMedicationDetailPageContent() {
               <article className="rounded-3xl border border-brand-border bg-white/80 p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm text-brand-secondary">{medication.category || "Sin categoría"}</p>
+                    <p className="text-sm text-brand-secondary">{medication.category || "Sin categorÃ­a"}</p>
                     <h2 className="text-xl font-semibold text-brand-text">{medication.name}</h2>
                   </div>
                   {inventoryItem && <StockAlertBadge item={inventoryItem} />}
@@ -204,7 +204,7 @@ function CenterMedicationDetailPageContent() {
                     <dd className="font-medium text-brand-text">{medication.supplier || "-"}</dd>
                   </div>
                   <div>
-                    <dt className="text-brand-secondary">Ubicación</dt>
+                    <dt className="text-brand-secondary">UbicaciÃ³n</dt>
                     <dd className="font-medium text-brand-text">{medication.storageLocation || "-"}</dd>
                   </div>
                 </dl>
@@ -347,7 +347,7 @@ function CenterMedicationDetailPageContent() {
                     <p className="text-sm text-brand-secondary">
                       {horseIdFilter
                         ? "Filtrado por caballo desde la ficha."
-                        : "Tratamientos activos e históricos de este medicamento."}
+                        : "Tratamientos activos e histÃ³ricos de este medicamento."}
                     </p>
                   </div>
                   {horseIdFilter && (
@@ -377,7 +377,7 @@ function CenterMedicationDetailPageContent() {
                                 {horse?.horse.name ?? treatment.horseId}
                               </p>
                               <p className="text-sm text-brand-secondary">
-                                {treatment.dose} {medication.unit} · {treatment.administrationRoute}
+                                {treatment.dose} {medication.unit} Â· {treatment.administrationRoute}
                               </p>
                               <p className="text-xs text-brand-secondary">
                                 {treatment.startDate.toDate().toLocaleDateString("es-ES")}

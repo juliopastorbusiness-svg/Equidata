@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import {
   MODULE_REGISTRY,
   ModuleId,
+  getVisibleModules,
   getAllDependentModules,
-  getModuleDependencies,
+  isModuleVisible,
 } from "@/lib/modules/moduleConfig";
 import { ModuleService } from "@/lib/services/moduleService";
 import { db } from "@/lib/firebase";
@@ -44,7 +45,7 @@ export function ManageModulesModal({
         setLoading(true);
         const moduleService = new ModuleService(db);
         const modules = await moduleService.getEnabledModules(centerId);
-        setEnabledModules(modules);
+        setEnabledModules(modules.filter(isModuleVisible));
         setAlert(null);
       } catch (error) {
         setAlert({
@@ -76,13 +77,14 @@ export function ManageModulesModal({
         if (result.success) {
           // Recargar módulos desde Firestore
           const updated = await moduleService.getEnabledModules(centerId);
-          setEnabledModules(updated);
+          setEnabledModules(updated.filter(isModuleVisible));
 
           if (result.activated.length > 1) {
             setAlert({
               type: "info",
               message: `Se activaron también los módulos necesarios: ${result.activated
                 .slice(1)
+                .filter(isModuleVisible)
                 .map((m) => MODULE_REGISTRY[m].title)
                 .join(", ")}`,
             });
@@ -96,9 +98,9 @@ export function ManageModulesModal({
         }
       } else {
         // DESACTIVAR - primero verificar dependientes
-        const dependents = getAllDependentModules(moduleId).filter((m) =>
-          enabledModules.includes(m)
-        );
+        const dependents = getAllDependentModules(moduleId)
+          .filter(isModuleVisible)
+          .filter((m) => enabledModules.includes(m));
 
         if (dependents.length > 0) {
           // Mostrar advertencia de dependientes
@@ -118,7 +120,7 @@ export function ManageModulesModal({
 
         if (result.success) {
           const updated = await moduleService.getEnabledModules(centerId);
-          setEnabledModules(updated);
+          setEnabledModules(updated.filter(isModuleVisible));
           setAlert(null);
         } else {
           setAlert({
@@ -145,11 +147,12 @@ export function ManageModulesModal({
 
     if (result.success) {
       const updated = await moduleService.getEnabledModules(centerId);
-      setEnabledModules(updated);
+      setEnabledModules(updated.filter(isModuleVisible));
       setPendingDisable(null);
       setAlert({
         type: "info",
         message: `Se desactivaron: ${Array.from(new Set(result.disabled || []))
+          .filter(isModuleVisible)
           .map((m) => MODULE_REGISTRY[m].title)
           .join(", ")}`,
       });
@@ -205,7 +208,7 @@ export function ManageModulesModal({
 
   if (!isOpen) return null;
 
-  const modules = Object.values(MODULE_REGISTRY);
+  const modules = getVisibleModules();
   const categories = Array.from(
     new Set(modules.map((m) => m.category))
   ).sort();
@@ -339,12 +342,11 @@ function ModuleToggleItem({
   pendingDisable,
   allEnabledModules,
 }: ModuleToggleItemProps) {
-  const { dependenciesInfo, dependentsInfo } =
-    useModuleDependencies(module.id);
+  const { dependenciesInfo } = useModuleDependencies(module.id);
 
-  const activeDependents = getAllDependentModules(module.id).filter((m) =>
-    allEnabledModules.includes(m)
-  );
+  const activeDependents = getAllDependentModules(module.id)
+    .filter(isModuleVisible)
+    .filter((m) => allEnabledModules.includes(m));
 
   const showDependencyWarning =
     pendingDisable === module.id && activeDependents.length > 0;

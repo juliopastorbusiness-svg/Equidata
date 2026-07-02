@@ -4,6 +4,7 @@ import {
   MODULE_REGISTRY,
   getModuleDependencies,
   getDependentModules,
+  isModuleVisible,
 } from "@/lib/modules/moduleConfig";
 
 interface UseModuleDependenciesResult {
@@ -31,25 +32,29 @@ export function useModuleDependencies(
 
   const dependenciesInfo = useMemo(
     () =>
-      dependencies.map((id) => ({
-        id,
-        title: MODULE_REGISTRY[id].title,
-      })),
+      dependencies
+        .filter(isModuleVisible)
+        .map((id) => ({
+          id,
+          title: MODULE_REGISTRY[id].title,
+        })),
     [dependencies]
   );
 
   const dependentsInfo = useMemo(
     () =>
-      dependents.map((id) => ({
-        id,
-        title: MODULE_REGISTRY[id].title,
-      })),
+      dependents
+        .filter(isModuleVisible)
+        .map((id) => ({
+          id,
+          title: MODULE_REGISTRY[id].title,
+        })),
     [dependents]
   );
 
   return {
-    dependencies,
-    dependents,
+    dependencies: dependencies.filter(isModuleVisible),
+    dependents: dependents.filter(isModuleVisible),
     dependenciesInfo,
     dependentsInfo,
   };

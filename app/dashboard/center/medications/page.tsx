@@ -95,7 +95,7 @@ function CenterMedicationsPageContent() {
         backHref="/dashboard/center"
       />
 
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 md:px-6">
+      <div className="app-shell">
         {guardError && (
           <p className="rounded-xl border border-red-800 bg-red-950/40 p-3 text-sm text-red-300">
             {guardError}
@@ -108,7 +108,7 @@ function CenterMedicationsPageContent() {
         )}
 
         {memberships.length > 1 && (
-          <section className="max-w-xl rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
+          <section className="w-full rounded-2xl border border-brand-border bg-white/70 p-4 shadow-sm">
             <label htmlFor="center-selector" className="mb-2 block text-sm text-brand-secondary">
               Cambiar centro activo
             </label>
@@ -143,11 +143,11 @@ function CenterMedicationsPageContent() {
                 <p className="mt-2 text-3xl font-semibold text-brand-text">{summary.lowStock}</p>
               </article>
               <article className="rounded-2xl border border-brand-border bg-white/80 p-4 shadow-sm">
-                <p className="text-xs uppercase tracking-wide text-brand-secondary">Próximos a caducar</p>
+                <p className="text-xs uppercase tracking-wide text-brand-secondary">PrÃ³ximos a caducar</p>
                 <p className="mt-2 text-3xl font-semibold text-brand-text">{summary.expiringSoon}</p>
               </article>
               <article className="rounded-2xl border border-brand-border bg-white/80 p-4 shadow-sm">
-                <p className="text-xs uppercase tracking-wide text-brand-secondary">Alertas críticas</p>
+                <p className="text-xs uppercase tracking-wide text-brand-secondary">Alertas crÃ­ticas</p>
                 <p className="mt-2 text-3xl font-semibold text-brand-text">{summary.critical}</p>
               </article>
             </section>
@@ -173,7 +173,7 @@ function CenterMedicationsPageContent() {
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold text-brand-text">Nuevo medicamento</h2>
                   <p className="text-sm text-brand-secondary">
-                    Añade un medicamento al inventario central.
+                    AÃ±ade un medicamento al inventario central.
                   </p>
                 </div>
                 <MedicationForm
