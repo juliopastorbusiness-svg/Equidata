@@ -119,14 +119,27 @@ export type MedicalRecord = {
   title: string;
   date: Timestamp;
   veterinarianName?: string;
+  vaccineName?: string;
+  vaccineBatch?: string;
   diagnosis?: string;
   treatment?: string;
+  medicationAdministered?: string;
   notes?: string;
-  attachments: string[];
+  attachments: MedicalAttachment[];
   nextReviewAt?: Timestamp;
+  nextDoseAt?: Timestamp;
   createdBy: string;
+  updatedBy?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
+};
+
+export type MedicalAttachment = {
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+  uploadedAt?: Timestamp;
 };
 
 export type WeightEntry = {

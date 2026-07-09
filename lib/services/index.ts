@@ -18,3 +18,6 @@ export * from "@/lib/services/arenaBookingService";
 export * from "@/lib/services/reservationService";
 export * from "@/lib/services/billingCustomerService";
 export * from "@/lib/services/clientService";
+export * from "@/lib/services/professionalRecordService";
+export * from "@/lib/services/professionalRecordConfig";
+export * from "@/lib/services/horseAlertService";

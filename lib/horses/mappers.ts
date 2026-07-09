@@ -17,6 +17,33 @@ import {
   WeightEntry,
 } from "@/lib/horses/types";
 
+const mapMedicalAttachments = (
+  value?: FirestoreMedicalRecordDoc["attachments"]
+): MedicalRecord["attachments"] => {
+  if (!value) return [];
+
+  return value
+    .map((attachment, index) => {
+      if (typeof attachment === "string") {
+        return {
+          name: `Documento ${index + 1}`,
+          url: attachment,
+          type: "application/octet-stream",
+          size: 0,
+        };
+      }
+
+      return {
+        name: attachment.name,
+        url: attachment.url,
+        type: attachment.type,
+        size: attachment.size,
+        uploadedAt: attachment.uploadedAt ?? undefined,
+      };
+    })
+    .filter((attachment) => attachment.url);
+};
+
 const mapContactInfo = (
   value?: {
     name: string;
@@ -113,12 +140,17 @@ export const mapMedicalRecord = (
   title: data.title,
   date: data.date,
   veterinarianName: data.veterinarianName ?? undefined,
+  vaccineName: data.vaccineName ?? undefined,
+  vaccineBatch: data.vaccineBatch ?? undefined,
   diagnosis: data.diagnosis ?? undefined,
   treatment: data.treatment ?? undefined,
+  medicationAdministered: data.medicationAdministered ?? undefined,
   notes: data.notes ?? undefined,
-  attachments: data.attachments ?? [],
+  attachments: mapMedicalAttachments(data.attachments),
   nextReviewAt: data.nextReviewAt ?? undefined,
+  nextDoseAt: data.nextDoseAt ?? undefined,
   createdBy: data.createdBy,
+  updatedBy: data.updatedBy ?? undefined,
   createdAt: data.createdAt,
   updatedAt: data.updatedAt,
 });

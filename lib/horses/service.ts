@@ -60,6 +60,7 @@ import {
   HORSE_STATUSES,
   HorseStatus,
   MedicalRecord,
+  MedicalAttachment,
   UpdateHorseInput,
   UploadHorseDocumentInput,
   WeightEntry,
@@ -81,6 +82,22 @@ const sanitizeFileName = (value: string): string => {
   const normalized = value.trim().replace(/\s+/g, "-");
   const sanitized = normalized.replace(/[^a-zA-Z0-9._-]/g, "");
   return sanitized || `file-${Date.now()}`;
+};
+
+const normalizeMedicalAttachments = (
+  value?: MedicalAttachment[]
+): FirestoreMedicalRecordDoc["attachments"] => {
+  if (!value) return [];
+
+  return value
+    .map((attachment) => ({
+      name: attachment.name.trim(),
+      url: attachment.url.trim(),
+      type: attachment.type.trim() || "application/octet-stream",
+      size: Number.isFinite(attachment.size) ? attachment.size : 0,
+      uploadedAt: toTimestampOrNull(attachment.uploadedAt),
+    }))
+    .filter((attachment) => attachment.name && attachment.url);
 };
 
 const assertId = (label: string, value: string): string => {
@@ -500,11 +517,15 @@ export const addMedicalRecord = async (
       title,
       date: payload.date,
       veterinarianName: trimOrNull(payload.veterinarianName),
+      vaccineName: trimOrNull(payload.vaccineName),
+      vaccineBatch: trimOrNull(payload.vaccineBatch),
       diagnosis: trimOrNull(payload.diagnosis),
       treatment: trimOrNull(payload.treatment),
+      medicationAdministered: trimOrNull(payload.medicationAdministered),
       notes: trimOrNull(payload.notes),
-      attachments: trimArray(payload.attachments),
+      attachments: normalizeMedicalAttachments(payload.attachments),
       nextReviewAt: toTimestampOrNull(payload.nextReviewAt),
+      nextDoseAt: toTimestampOrNull(payload.nextDoseAt),
       createdBy: assertId("createdBy", payload.createdBy),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -635,6 +656,36 @@ export const uploadHorseDocument = async (
   return docRef.id;
 };
 
+export const uploadMedicalRecordAttachment = async (
+  centerId: string,
+  horseId: string,
+  file: File | Blob,
+  fileName: string
+): Promise<MedicalAttachment> => {
+  const normalizedCenterId = assertId("centerId", centerId);
+  const normalizedHorseId = assertId("horseId", horseId);
+  await requireHorse(normalizedCenterId, normalizedHorseId);
+
+  const safeFileName = `${Date.now()}-${sanitizeFileName(fileName)}`;
+  const attachmentRef = ref(
+    storage,
+    `centers/${normalizedCenterId}/horses/${normalizedHorseId}/medicalRecords/attachments/${safeFileName}`
+  );
+  const uploadedAt = Timestamp.now();
+  const uploadResult = await uploadBytes(attachmentRef, file, {
+    contentType: file.type || undefined,
+  });
+  const url = await getDownloadURL(uploadResult.ref);
+
+  return {
+    name: fileName.trim() || safeFileName,
+    url,
+    type: file.type || "application/octet-stream",
+    size: "size" in file ? file.size : 0,
+    uploadedAt,
+  };
+};
+
 export const getHorseAlerts = async (
   centerId: string,
   horseId: string
@@ -701,12 +752,23 @@ export const updateMedicalRecord = async (
   if ("veterinarianName" in payload) {
     nextPatch.veterinarianName = trimOrNull(payload.veterinarianName);
   }
+  if ("vaccineName" in payload) nextPatch.vaccineName = trimOrNull(payload.vaccineName);
+  if ("vaccineBatch" in payload) nextPatch.vaccineBatch = trimOrNull(payload.vaccineBatch);
   if ("diagnosis" in payload) nextPatch.diagnosis = trimOrNull(payload.diagnosis);
   if ("treatment" in payload) nextPatch.treatment = trimOrNull(payload.treatment);
+  if ("medicationAdministered" in payload) {
+    nextPatch.medicationAdministered = trimOrNull(payload.medicationAdministered);
+  }
   if ("notes" in payload) nextPatch.notes = trimOrNull(payload.notes);
-  if ("attachments" in payload) nextPatch.attachments = trimArray(payload.attachments);
+  if ("updatedBy" in payload) nextPatch.updatedBy = trimOrNull(payload.updatedBy);
+  if ("attachments" in payload) {
+    nextPatch.attachments = normalizeMedicalAttachments(payload.attachments);
+  }
   if ("nextReviewAt" in payload) {
     nextPatch.nextReviewAt = toTimestampOrNull(payload.nextReviewAt);
+  }
+  if ("nextDoseAt" in payload) {
+    nextPatch.nextDoseAt = toTimestampOrNull(payload.nextDoseAt);
   }
 
   await updateDoc(

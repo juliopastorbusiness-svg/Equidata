@@ -25,6 +25,9 @@ import {
   PaymentMethod,
   PaymentStatus,
   PaymentType,
+  ProfessionalRecordAttachment,
+  ProfessionalRecordMetadata,
+  ProfessionalRecordType,
   ReservationStatus,
   StudentLevel,
   StudentStatus,
@@ -139,6 +142,23 @@ export type FirestoreClientDoc = {
   notes?: string | null;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
+};
+
+export type FirestoreProfessionalRecordDoc = {
+  horseId: string;
+  centerId: string;
+  professionalId: string;
+  profession: string;
+  recordType: ProfessionalRecordType | string;
+  title: string;
+  description: string;
+  date: Timestamp;
+  attachments?: ProfessionalRecordAttachment[] | null;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+  createdBy: string;
+  updatedBy?: string | null;
+  metadata?: ProfessionalRecordMetadata | null;
 };
 
 export type FirestoreArenaBookingDoc = {

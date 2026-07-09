@@ -57,6 +57,32 @@ export type BillingCustomerFinancialStatus = "pending" | "paid" | "credit";
 export type BillingMovementType = "expense" | "payment";
 export type BillingPaymentMethod = "cash" | "transfer" | "card" | "other";
 export type ClientStatus = "ACTIVE" | "INACTIVE" | "LEAD";
+export type ProfessionalRecordType =
+  | "veterinary"
+  | "farrier"
+  | "class"
+  | "physiotherapy"
+  | "training"
+  | "general";
+
+export type ProfessionalRecordAttachment = {
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+  uploadedAt?: Timestamp;
+};
+
+export type ProfessionalRecordMetadataValue =
+  | string
+  | number
+  | boolean
+  | Timestamp
+  | null
+  | ProfessionalRecordMetadataValue[]
+  | { [key: string]: ProfessionalRecordMetadataValue };
+
+export type ProfessionalRecordMetadata = Record<string, ProfessionalRecordMetadataValue>;
 
 export type UserProfile = AuditFields & {
   uid: string;
@@ -361,6 +387,22 @@ export type Client = AuditFields & {
   isStudent: boolean;
   isOwner: boolean;
   notes?: string;
+};
+
+export type ProfessionalRecord = AuditFields & {
+  id: string;
+  horseId: string;
+  centerId: string;
+  professionalId: string;
+  profession: string;
+  recordType: ProfessionalRecordType | string;
+  title: string;
+  description: string;
+  date: Timestamp;
+  attachments: ProfessionalRecordAttachment[];
+  createdBy: string;
+  updatedBy?: string;
+  metadata: ProfessionalRecordMetadata;
 };
 
 export type DateRange = {

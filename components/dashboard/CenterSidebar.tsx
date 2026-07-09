@@ -74,6 +74,16 @@ const ClientsIcon = () => (
   </svg>
 );
 
+const ProfessionalsIcon = () => (
+  <svg aria-hidden="true" viewBox="0 0 24 24" className={iconClassName} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M19 8v5" />
+    <path d="M21.5 10.5h-5" />
+    <path d="M19 16v.01" />
+  </svg>
+);
+
 const LogoutIcon = () => (
   <svg aria-hidden="true" viewBox="0 0 24 24" className={iconClassName} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -98,6 +108,7 @@ export function CenterSidebar({
     { label: "Mi perfil", href: "/dashboard/center/profile", icon: <ProfileIcon /> },
     { label: "Mi plan", href: "/dashboard/center/plan", icon: <PlanIcon /> },
     { label: "Clientes", href: "/clientes", icon: <ClientsIcon /> },
+    { label: "Profesionales", href: "/dashboard/center/professionals", icon: <ProfessionalsIcon /> },
     { label: "Gestionar módulos", icon: <ModulesIcon />, onClick: onManageModules },
     { label: "Solicitudes de acceso", href: requestsHref, icon: <RequestsIcon /> },
     { label: "Cerrar sesión", icon: <LogoutIcon />, onClick: onLogout, danger: true },

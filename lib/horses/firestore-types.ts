@@ -66,14 +66,27 @@ export type FirestoreMedicalRecordDoc = {
   title: string;
   date: Timestamp;
   veterinarianName?: string | null;
+  vaccineName?: string | null;
+  vaccineBatch?: string | null;
   diagnosis?: string | null;
   treatment?: string | null;
+  medicationAdministered?: string | null;
   notes?: string | null;
-  attachments?: string[] | null;
+  attachments?: FirestoreMedicalAttachment[] | string[] | null;
   nextReviewAt?: Timestamp | null;
+  nextDoseAt?: Timestamp | null;
   createdBy: string;
+  updatedBy?: string | null;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
+};
+
+export type FirestoreMedicalAttachment = {
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+  uploadedAt?: Timestamp | null;
 };
 
 export type FirestoreWeightEntryDoc = {
